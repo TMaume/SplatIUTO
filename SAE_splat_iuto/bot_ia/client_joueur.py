@@ -48,6 +48,15 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         str: une chaine de deux caractères en majuscules indiquant la direction de peinture
             et la direction de déplacement
     """
+    # priorité 1 : si un joueur adverse est à portée de tir, le viser
+    # priorité 2 : aller chercher un bonus
+    # priorité 3 : se déplacer sur une case non peinte ou de notre couleur
+    # priorité 4 : rester a distance des autres joueurs
+    # priorité 5 : si notre peinture est negative aller chercher un bidon sans prendre en compte les autres priorités mise a part la 1 et la 2
+    # priorité 6 : si l'on a un bouclier actif aller en direction des adversaires pour les toucher
+    # priorité 7 : si on a un pistolet tirer sur les murs
+    # priorité 8 : peindre dans une zone avec le moins de peinture enemie et moins de notre peinture
+
     # IA complètement aléatoire
     return random.choice("XNSOE")+random.choice("NSEO")
 

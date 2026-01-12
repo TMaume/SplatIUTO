@@ -80,40 +80,14 @@ Légende:
 
 
 
-    if direction == 'N':
-        for i in range(distance_max):
-            if pos[0]-i < 0:
-                break
-            case_actuelle = get_case(plateau, (pos[0]-i, pos[1]))
-            if case.est_mur(case_actuelle):
-                break
-            else:
-                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
-    elif direction == 'S':
-        for i in range(distance_max):
-            if pos[0]+i > get_nb_lignes(plateau)-1:
-                break
-            case_actuelle = get_case(plateau, (pos[0]+i, pos[1]))
-            if case.est_mur(case_actuelle):
-                break
-            else:
-                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
-    elif direction == 'O':
-        for i in range(distance_max):
-            if pos[1]-i < 0:
-                break
-            case_actuelle = get_case(plateau, (pos[0], pos[1]-i))
-            if case.est_mur(case_actuelle):
-                break
-            else:
-                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle) 
-    elif direction == 'E':
-        for i in range(distance_max):
-            if pos[1]+i > get_nb_colonnes(plateau):
-                break
-            case_actuelle = get_case(plateau, (pos[0], pos[1]+i))
-            if case.est_mur(case_actuelle):
-                break
-            else:
-                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
-    return nb_joueurs_portee
+def get_valeur(matrice, ligne, colonne):
+    return matrice[ligne][colonne]
+
+def set_valeur(matrice, ligne, colonne, valeur):
+    matrice[ligne][colonne] = valeur
+
+def get_ligne(matrice, num_ligne):
+    return matrice[num_ligne]
+
+def get_colonne(matrice, num_colonne):
+    return [matrice[i][num_colonne] for i in range(len(matrice))]

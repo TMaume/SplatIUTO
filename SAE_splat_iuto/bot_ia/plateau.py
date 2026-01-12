@@ -20,11 +20,15 @@ module de gestion du plateau de jeu
 from bot_ia import const
 from bot_ia import case
 
-
 # dictionnaire permettant d'associer une direction et la position relative
 # de la case qui se trouve dans cette direction
-INC_DIRECTION = {'N': (-1, 0), 'E': (0, 1), 'S': (1, 0),
-                 'O': (0, -1), 'X': (0, 0)}
+INC_DIRECTION = {
+    'N': (-1, 0),
+    'E': (0, 1),
+    'S': (1, 0),
+    'O': (0, -1),
+    'X': (0, 0)
+    }
 
 
 def get_nb_lignes(plateau):
@@ -352,18 +356,31 @@ def directions_possibles(plateau,pos):
               de la case d'arrivée si on prend cette direction
               à partir de pos
     """
+    # dico = dict()
+    # l, c = pos 
+    # if  case.est_mur(get_case(plateau, (l-1, c)))==False and est_sur_plateau(plateau, (l-1, c)):
+    #         dico['N'] = case.get_couleur(get_case(plateau, (l-1, c)))
+    # if case.est_mur(get_case(plateau, (l+1, c)))==False and est_sur_plateau(plateau, (l+1, c)):
+    #         dico['S'] = case.get_couleur(get_case(plateau, (l+1, c)))
+    # if case.est_mur(get_case(plateau, (l, c-1)))==False and est_sur_plateau(plateau, (l, c-1)):
+    #         dico['O'] = case.get_couleur(get_case(plateau, (l, c-1)))
+    # if case.est_mur(get_case(plateau, (l, c+1)))==False and est_sur_plateau(plateau, (l, c+1)):
+    #         dico['E'] = case.get_couleur(get_case(plateau, (l, c+1)))
     dico = dict()
-    l, c = pos 
-    if  case.est_mur(get_case(plateau, (l-1, c)))==False and est_sur_plateau(plateau, (l-1, c)):
-            dico['N'] = case.get_couleur(get_case(plateau, (l-1, c)))
-    if case.est_mur(get_case(plateau, (l+1, c)))==False and est_sur_plateau(plateau, (l+1, c)):
-            dico['S'] = case.get_couleur(get_case(plateau, (l+1, c)))
-    if case.est_mur(get_case(plateau, (l, c-1)))==False and est_sur_plateau(plateau, (l, c-1)):
-            dico['O'] = case.get_couleur(get_case(plateau, (l, c-1)))
-    if case.est_mur(get_case(plateau, (l, c+1)))==False and est_sur_plateau(plateau, (l, c+1)):
-            dico['E'] = case.get_couleur(get_case(plateau, (l, c+1)))
-    return dico
+    l, c = pos
 
+    for dir_nom, (nl, nc) in INC_DIRECTION.items():
+        if dir_nom == 'X': #On retire X des possibilité
+            continue
+        # On définit la coordonnée voisine
+        voisin_pos = (l + nl, c + nc)
+
+        # Ton test exact, mis dans la boucle
+        if case.est_mur(get_case(plateau, voisin_pos)) == False and est_sur_plateau(plateau, voisin_pos):
+            dico[dir_nom] = case.get_couleur(get_case(plateau, voisin_pos))
+
+    return dico
+            
 
 def nb_joueurs_direction(plateau, pos, direction, distance_max):
     """indique combien de joueurs se trouve à portée sans protection de mur.
@@ -390,6 +407,7 @@ def nb_joueurs_direction(plateau, pos, direction, distance_max):
     return nb_joueurs_portee
     
 
+
 def distances_objets_joueurs(plateau, pos, distance_max):
     """calcul les distances entre la position pos est les différents objets et
         joueurs du plateau en se limitant à la distance max.
@@ -403,4 +421,72 @@ def distances_objets_joueurs(plateau, pos, distance_max):
             contenant à la fois des objets et des joueurs. Attention le dictionnaire ne doit contenir
             des entrées uniquement pour les distances où il y a effectivement au moins un objet ou un joueur
     """ 
+    # Type de dico voulu: {4: {4}, 10: {'D'}, 14: {3}, 15: {'E'}, 17: {1, 'C'}, 18: {'A', 'B'}}
+    dico_distances = dict()
     
+    # Vérifier si la position de départ est sur le plateau
+    if not est_sur_plateau(plateau, pos):
+        return dico_distances
+    
+    # Utiliser une approche BFS (Breadth-First Search) pour contourner les murs
+    visited = set()
+    queue = [(pos, 0)]  # (position, distance)
+    visited.add(pos)
+    index = 0
+    
+    while index < len(queue):
+        pos_actuelle, distance = queue[index]
+        index += 1
+        
+        # Si on dépasse la distance max, on continue pas
+        if distance > distance_max:
+            continue
+        
+        # Récupérer la case actuelle
+        la_case = get_case(plateau, pos_actuelle)
+        
+        # Enregistrer les joueurs et objets
+        objet = case.get_objet(la_case)
+        joueurs = case.get_joueurs(la_case)
+        
+        if objet != const.AUCUN or len(joueurs) > 0:
+            if distance not in dico_distances:
+                dico_distances[distance] = set()
+            
+            if objet != const.AUCUN:
+                dico_distances[distance].add(objet)
+            
+            for joueur in joueurs:
+                dico_distances[distance].add(joueur)
+        
+        # Explorer les voisins si on n'a pas atteint la distance max
+        if distance < distance_max:
+            for direction in ['N', 'S', 'E', 'O']:
+                voisin_pos = (pos_actuelle[0] + INC_DIRECTION[direction][0], 
+                             pos_actuelle[1] + INC_DIRECTION[direction][1])
+                
+                # Vérifier que le voisin n'a pas déjà été visité
+                if voisin_pos not in visited:
+                    # Vérifier que le voisin est sur le plateau
+                    if est_sur_plateau(plateau, voisin_pos):
+                        # On ne traverse pas les murs sauf à la position initiale
+                        if distance > 0 and case.est_mur(get_case(plateau, voisin_pos)):
+                            continue
+                        # Si on est à distance 0 et le voisin est un mur, on ne l'ajoute pas
+                        if case.est_mur(get_case(plateau, voisin_pos)):
+                            continue
+                        visited.add(voisin_pos)
+                        queue.append((voisin_pos, distance + 1))
+                
+    return dico_distances
+
+
+
+
+
+
+
+"""
+    dico_distances=dict()
+    for i 
+"""
