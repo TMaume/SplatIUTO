@@ -306,7 +306,7 @@ def peindre(plateau, pos, direction, couleur, reserve, distance_max, peindre_mur
 
 #---------------------------------------------------------#
 
-def est_sur_plateau(plateau, pos):
+def est_sur_plateau(plateau, pos): # Fonction ajouter
     """indique si la position pos est bien sur le plateau
 
     Args:
@@ -369,15 +369,16 @@ def directions_possibles(plateau,pos):
     dico = dict()
     l, c = pos
 
-    for dir_nom, (nl, nc) in INC_DIRECTION.items():
-        if dir_nom == 'X': #On retire X des possibilité
+    for dicti, (nl, nc) in INC_DIRECTION.items():
+        if dicti == 'X': #On retire X des possibilité
             continue
         # On définit la coordonnée voisine
         voisin_pos = (l + nl, c + nc)
 
-        # Ton test exact, mis dans la boucle
-        if case.est_mur(get_case(plateau, voisin_pos)) == False and est_sur_plateau(plateau, voisin_pos):
-            dico[dir_nom] = case.get_couleur(get_case(plateau, voisin_pos))
+        if est_sur_plateau(plateau, voisin_pos):
+            case_voisin = get_case(plateau, voisin_pos)
+            if not case.est_mur(case_voisin):
+                dico[dicti] = case.get_couleur(case_voisin)
 
     return dico
             
@@ -458,17 +459,12 @@ def distances_objets_joueurs(plateau, pos, distance_max):
                     dico_distances[distance].add(joueur)
 
             if distance < distance_max:
-                for direction in ['N', 'S', 'E', 'O']:
-                    voisin_pos = (pos_actuelle[0] + INC_DIRECTION[direction][0], 
-                                 pos_actuelle[1] + INC_DIRECTION[direction][1])
-                    
+                for dir_nom in directions_possibles(plateau, pos_actuelle):
+                    voisin_pos = (pos_actuelle[0] + INC_DIRECTION[dir_nom][0],
+                                  pos_actuelle[1] + INC_DIRECTION[dir_nom][1])
                     if voisin_pos not in visitee:
-                        if est_sur_plateau(plateau, voisin_pos):
-                            
-                            # Vérifier si ce n'est pas un mur
-                            if not case.est_mur(get_case(plateau, voisin_pos)):
-                                visitee.add(voisin_pos)
-                                queue.append((voisin_pos, distance + 1))               
+                        visitee.add(voisin_pos)
+                        queue.append((voisin_pos, distance + 1))
     return dico_distances
 
 

@@ -48,14 +48,30 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         str: une chaine de deux caractères en majuscules indiquant la direction de peinture
             et la direction de déplacement
     """
-    # priorité 1 : si un joueur adverse est à portée de tir, le viser
-    # priorité 2 : aller chercher un bonus
-    # priorité 3 : se déplacer sur une case non peinte ou de notre couleur
-    # priorité 4 : rester a distance des autres joueurs
-    # priorité 5 : si notre peinture est negative aller chercher un bidon sans prendre en compte les autres priorités mise a part la 1 et la 2
-    # priorité 6 : si l'on a un bouclier actif aller en direction des adversaires pour les toucher
+    # priorité 0 : si notre peinture est a 0 aller marcher sur notre peinture  (peinture_zero())
+    # priorité 1 : si notre peinture est negative aller chercher un bidon sans prendre en compte les autres priorités mise a part la 1 et la 2
+    # priorité 2 : si un joueur adverse est à portée de tir, le viser
+    # priorité 3 : aller chercher un bonus si on en a pas
+    # priorité 4 : se déplacer sur une case non peinte ou de notre couleur
+    # priorité 5 : si l'on a un bouclier actif aller en direction des adversaires pour les toucher
+    # priorité 6 : rester a distance des autres joueurs
     # priorité 7 : si on a un pistolet tirer sur les murs
     # priorité 8 : peindre dans une zone avec le moins de peinture enemie et moins de notre peinture
+
+    # def peinture_zero(joueur, notre_IA, Distance_max):
+    #     if joueur.get_reserve(notre_IA) == 0:
+    #         voisins = plateau.directions_possibles(plateau,pos)
+
+
+
+
+
+    # for joueur in les_joueurs:
+    #     if joueur[nom] == "La chienneté":
+    #         notre_IA = joueur
+    # Distance_max = 4 # valeur subjetive
+    # distance_objets_et_joueurs = plateau.distances_objets_joueurs(le_plateau, notre_IA[pos], Distance_max)
+
 
     # IA complètement aléatoire
     return random.choice("XNSOE")+random.choice("NSEO")

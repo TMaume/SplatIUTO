@@ -191,6 +191,7 @@ def set_surface(joueur, surface):
     """
     joueur['surface'] = surface
     return joueur['surface']
+    
 def maj_points(joueur):
     """met à jour le nombre de points du joueur en ajoutant la surface qu'il possède
 
