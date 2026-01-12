@@ -1,0 +1,119 @@
+plateau = {
+    "nb_lignes": 14,
+    "nb_colonnes": 14,
+    "les_valeurs": [
+        # Ligne 0
+        Case(mur=False, couleur=' '),  # (0,0)
+        Case(mur=False, couleur=' '),  # (0,1)
+        Case(mur=False, couleur=' '),  # (0,2)
+        ...
+        # Ligne 1
+        Case(mur=False, couleur=' '),  # (1,0)
+        Case(mur=False, couleur=' '),  # (1,1)
+        Case(mur=True,  couleur=' '),  # (1,2) - mur
+        Case(mur=False, couleur=' '),  # (1,3)
+        Case(mur=True,  couleur=' '),  # (1,4) - mur
+        ...
+        # ... 196 cases au total (14×14)
+    ]
+}
+
+Fichier carte.txt (14 lignes × 14 colonnes):
+
+  0 1 2 3 4 5 6 7 8 9 10 11 12 13
+0 . . . . . . . . . . . . . .
+1 . . # . # . . # . # # # . .
+2 . . # . # . . # . . # . . .
+3 . . # . # . . # . . # . . .
+4 . . # . . # # . . . # . . .
+5 . . . . . . . . . . . . . .
+6 . . . # # . . . . # # . . .
+7 . . # . . # . . # . . # . .
+8 . . . . . # . . # . . . . .
+9 . . . . . # . . . # # # . .
+10. . . . # . . . . # # # # .
+11. . . # . . . . . . # # # .
+12. . # # # # . . . . # # . .
+13. . . . . . . . . . . . . .
+
+Légende:
+  . = couloir non peint (' ')
+  # = mur
+  A,B,C,D = couloir peint par le joueur (couleur)
+
+
+  PLATEAU (dict)
+│
+├── "nb_lignes" : int
+│   └── nombre de lignes du plateau
+│
+├── "nb_colonnes" : int
+│   └── nombre de colonnes du plateau
+│
+└── "les_valeurs" : list
+    └── liste linéaire contenant toutes les cases
+        │   (longueur = nb_lignes × nb_colonnes)
+        │   Indexation: pos[0] * nb_colonnes + pos[1]
+        │   pour accéder à la case à la position (lig, col)
+        │
+        └── CASE (dict) × (nb_lignes × nb_colonnes)
+            │
+            ├── "mur" : bool
+            │   └── True si c'est un mur, False si c'est un couloir
+            │
+            ├── "couleur" : str
+            │   └── ' ' (espace) = non peint
+            │   └── 'A', 'B', 'C', 'D', ... = couleur du joueur
+            │
+            ├── "objet" : int
+            │   └── const.AUCUN = pas d'objet
+            │   └── const.BIDON, const.BOMBE, ... = type d'objet
+            │
+            └── "joueurs_presents" : set
+                └── ensemble des identifiants joueurs sur la case
+                    (ex: {'A', 'B'} si joueurs A et B sont ensemble)
+
+
+
+
+
+
+
+
+    if direction == 'N':
+        for i in range(distance_max):
+            if pos[0]-i < 0:
+                break
+            case_actuelle = get_case(plateau, (pos[0]-i, pos[1]))
+            if case.est_mur(case_actuelle):
+                break
+            else:
+                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
+    elif direction == 'S':
+        for i in range(distance_max):
+            if pos[0]+i > get_nb_lignes(plateau)-1:
+                break
+            case_actuelle = get_case(plateau, (pos[0]+i, pos[1]))
+            if case.est_mur(case_actuelle):
+                break
+            else:
+                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
+    elif direction == 'O':
+        for i in range(distance_max):
+            if pos[1]-i < 0:
+                break
+            case_actuelle = get_case(plateau, (pos[0], pos[1]-i))
+            if case.est_mur(case_actuelle):
+                break
+            else:
+                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle) 
+    elif direction == 'E':
+        for i in range(distance_max):
+            if pos[1]+i > get_nb_colonnes(plateau):
+                break
+            case_actuelle = get_case(plateau, (pos[0], pos[1]+i))
+            if case.est_mur(case_actuelle):
+                break
+            else:
+                nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
+    return nb_joueurs_portee

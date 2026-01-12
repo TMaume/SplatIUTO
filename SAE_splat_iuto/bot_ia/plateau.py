@@ -301,6 +301,19 @@ def peindre(plateau, pos, direction, couleur, reserve, distance_max, peindre_mur
 
 
 #---------------------------------------------------------#
+
+def est_sur_plateau(plateau, pos):
+    """indique si la position pos est bien sur le plateau
+
+    Args:
+        plateau (dict): le plateau considéré
+        pos (tuple): une paire (lig,col) de deux int
+
+    Returns:
+        bool: True si la position est sur le plateau, False sinon
+    """
+    return 0 <= pos[0] < plateau["nb_lignes"] and 0 <= pos[1] < plateau["nb_colonnes"]
+
 def surfaces_peintes(plateau, nb_joueurs):
     """retourne un dictionnaire indiquant le nombre de cases peintes pour chaque joueur.
 
@@ -312,7 +325,19 @@ def surfaces_peintes(plateau, nb_joueurs):
         dict: un dictionnaire dont les clées sont les identifiants joueurs et les
             valeurs le nombre de cases peintes par le joueur
     """
-    ...
+    dico = {}
+    for caseActuelle in plateau['les_valeurs']:
+        if case.get_couleur(caseActuelle) != ' ':
+            dico[case.get_couleur(caseActuelle)] = dico.get(case.get_couleur(caseActuelle), 0) + 1
+    if len(dico) < nb_joueurs:
+        for caseActuelle in plateau['les_valeurs']:
+            if len(case.get_joueurs(caseActuelle)) > 0:
+                for joueur in case.get_joueurs(caseActuelle):
+                    if joueur not in dico.keys():
+                        dico[joueur] = 0
+    return dico
+    
+
 
 def directions_possibles(plateau,pos):
     """ retourne les directions vers où il est possible de se déplacer à partir
@@ -327,7 +352,18 @@ def directions_possibles(plateau,pos):
               de la case d'arrivée si on prend cette direction
               à partir de pos
     """
-    ...
+    dico = dict()
+    l, c = pos 
+    if  case.est_mur(get_case(plateau, (l-1, c)))==False and est_sur_plateau(plateau, (l-1, c)):
+            dico['N'] = case.get_couleur(get_case(plateau, (l-1, c)))
+    if case.est_mur(get_case(plateau, (l+1, c)))==False and est_sur_plateau(plateau, (l+1, c)):
+            dico['S'] = case.get_couleur(get_case(plateau, (l+1, c)))
+    if case.est_mur(get_case(plateau, (l, c-1)))==False and est_sur_plateau(plateau, (l, c-1)):
+            dico['O'] = case.get_couleur(get_case(plateau, (l, c-1)))
+    if case.est_mur(get_case(plateau, (l, c+1)))==False and est_sur_plateau(plateau, (l, c+1)):
+            dico['E'] = case.get_couleur(get_case(plateau, (l, c+1)))
+    return dico
+
 
 def nb_joueurs_direction(plateau, pos, direction, distance_max):
     """indique combien de joueurs se trouve à portée sans protection de mur.
@@ -340,7 +376,19 @@ def nb_joueurs_direction(plateau, pos, direction, distance_max):
     Returns:
         int: le nombre de joueurs à portée de peinture (ou qui risque de nous peindre)
     """
-    ...
+    nb_joueurs_portee = 0
+
+    nb_joueurs_portee += case.get_nb_joueurs(get_case(plateau, pos))
+
+    NvPos = (pos[0] + INC_DIRECTION[direction][0], pos[1] + INC_DIRECTION[direction][1])
+    i = 0
+    while i < distance_max and est_sur_plateau(plateau, NvPos) and case.est_mur(get_case(plateau, NvPos))==False:
+            case_actuelle = get_case(plateau, NvPos)
+            nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
+            NvPos = (NvPos[0] + INC_DIRECTION[direction][0], NvPos[1] + INC_DIRECTION[direction][1])
+            i += 1
+    return nb_joueurs_portee
+    
 
 def distances_objets_joueurs(plateau, pos, distance_max):
     """calcul les distances entre la position pos est les différents objets et
@@ -355,4 +403,4 @@ def distances_objets_joueurs(plateau, pos, distance_max):
             contenant à la fois des objets et des joueurs. Attention le dictionnaire ne doit contenir
             des entrées uniquement pour les distances où il y a effectivement au moins un objet ou un joueur
     """ 
-    ...
+    

@@ -9,6 +9,17 @@ plateau1=  "4;6\n"+\
         "2\nA;1;1\nB;3;1\n"+\
         "0\n"
 
+
+# Plateau 1 (4 lignes × 6 colonnes)
+
+#     0 1 2 3 4 5
+#   ┌─────────────┐
+# 0 │ # · · # · · │
+# 1 │ · A # # · · │  (A = joueur A)
+# 2 │ # # A · · · │  (B = mur peint en B)
+# 3 │ · B A # · · │  (# = mur)
+#   └─────────────┘   (· = couloir vide)
+
 plateau2=  "20;16\n"+\
         "b   #AA##   #AA#\n"+\
         "b## #CABBB# #CA#\n"+\
