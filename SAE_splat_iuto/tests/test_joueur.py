@@ -6,6 +6,8 @@ chaine2="B;-8;12;-147;1;3;6;4;iut'o"
 chaine3="C;14;0;5230;2;1;23;1;splash"
 chaine4="D;15;0;230;2;1;23;1;splash"
 
+
+
 def test_joueur():
     le_joueur=joueur.Joueur('A',"test1",10,5,150,(12,47),1,3)
     assert joueur.get_couleur(le_joueur) == 'A'
@@ -31,9 +33,11 @@ def test_joueur_from_str():
     le_joueur=joueur.joueur_from_str(chaine1)
     assert joueur.get_couleur(le_joueur) == 'A'
     assert joueur.get_nom(le_joueur) == 'le peintre'
+    print(joueur.get_reserve(le_joueur))
     assert joueur.get_reserve(le_joueur) == 15
     assert joueur.get_surface(le_joueur) == 28
     assert joueur.get_points(le_joueur) == 150
+    print(joueur.get_pos(le_joueur))
     assert joueur.get_pos(le_joueur) == (12,25)
     assert joueur.get_objet(le_joueur) == 0
     assert joueur.get_duree(le_joueur) == 0
