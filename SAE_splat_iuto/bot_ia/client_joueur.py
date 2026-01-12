@@ -57,24 +57,104 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
     # priorité 6 : rester a distance des autres joueurs
     # priorité 7 : si on a un pistolet tirer sur les murs
     # priorité 8 : peindre dans une zone avec le moins de peinture enemie et moins de notre peinture
+    for joueur in les_joueurs:
+        if joueur["couleur"] == ma_couleur:
+            notre_IA = joueur
 
-    # def peinture_zero(joueur, notre_IA, Distance_max):
-    #     if joueur.get_reserve(notre_IA) == 0:
-    #         voisins = plateau.directions_possibles(plateau,pos)
+    calque_proche = plateau.distances_objets_joueurs(le_plateau,joueur['position'], plateau.get_nb_lignes(le_plateau))
+    
+    listeJ = []
+    for caseJ in calque_proche.items():
+        for joueur in les_joueurs:
+            if joueur in caseJ[1]['joueurs_presents']:
+                listeJ.append(caseJ)
+    return listeJ.sort(key= lambda x: x[0])
+
+                
+
+    def deplacement_peinture_zero(notre_IA, Distance_max):
+        if joueur.get_reserve(notre_IA) == 0:
+            pos = notre_IA["position"]
+            voisins = plateau.directions_possibles(plateau,pos)
+            for direction in voisins.key():
+                if voisins[direction] == notre_IA["couleur"]:
+                    return direction
+                else:
+                    if voisins[direction] == " ":
+                        return direction
+                    else:
+                        match direction:
+                            case "N":
+                                if voisins["S"] == " ":
+                                    return "S"
+                            case "O":
+                                if voisins["E"] == " ":
+                                    return "E"
+                            case "E":
+                                if voisins["O"] == " ":
+                                    return "O"
+                            case "S":
+                                if voisins["N"] == " ":
+                                    return "N"
+                        return random.choice("NSEO")
 
 
+    def deplacement_peinture_negative(notre_IA):
+        ...
+        
+    def tirer_sur_ennemie(notre_IA, plateau):
+        for direction in ["N", "E", "O", "S"]:
+            nb_joueurs_dans_direction = nb_joueurs_direction(plateau, notre_IA["position"], direction, const.PORTEE_PEINTURE)
+            if nb_joueurs_dans_direction > 0 and joueur.get_reserve(notre_IA)>0:
+                return direction
 
+    
 
-
-    # for joueur in les_joueurs:
-    #     if joueur[nom] == "La chienneté":
-    #         notre_IA = joueur
-    # Distance_max = 4 # valeur subjetive
-    # distance_objets_et_joueurs = plateau.distances_objets_joueurs(le_plateau, notre_IA[pos], Distance_max)
+    
+    
+    # Programme principal
+    
+    #deplacement
+    if joueur.get_reserve(notre_IA) == 0: # aller se recharger quand on a plus de peinture
+        deplacement_peinture_zero(notre_IA, Distance_max)
+    elif joueur.get_reserve(notre_IA) < 0: # si notre reserve de peinture est negative aller chercher un bideon
+        deplacement_peinture_negative(no)
 
 
     # IA complètement aléatoire
-    return random.choice("XNSOE")+random.choice("NSEO")
+    # return random.choice("XNSOE")+random.choice("NSEO")
+
+    def direction_tir_ennemi(moi, le_plateau, les_joueurs, carac_jeu):
+        
+        portee = const.PORTEE_PEINTURE 
+
+        if joueur.get_objet(moi) == const.PISTOLET:
+            portee = 5 
+
+        ma_lig, ma_col = joueur.get_position(moi)
+        
+        directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
+
+        for sens, (d_lig, d_col) in directions.items():
+            
+            for i in range(1, portee + 1): 
+                cible_lig = ma_lig + (d_lig * i)
+                cible_col = ma_col + (d_col * i)
+
+                if not plateau.est_sur_plateau(le_plateau, (cible_lig, cible_col)):
+                    break 
+                
+                if plateau.get_type_case(le_plateau, (cible_lig, cible_col)) == const.MUR:
+                    break 
+
+                for adv in les_joueurs:
+                    if adv != moi and joueur.get_position(adv) == (cible_lig, cible_col):
+                        return sens 
+        return None
+
+
+
+
 
 if __name__=="__main__":
     noms_caracteristiques=["duree_actuelle","duree_totale","reserve_initiale","duree_obj","penalite","bonus_touche",

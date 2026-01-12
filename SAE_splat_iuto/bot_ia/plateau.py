@@ -356,16 +356,6 @@ def directions_possibles(plateau,pos):
               de la case d'arrivée si on prend cette direction
               à partir de pos
     """
-    # dico = dict()
-    # l, c = pos 
-    # if  case.est_mur(get_case(plateau, (l-1, c)))==False and est_sur_plateau(plateau, (l-1, c)):
-    #         dico['N'] = case.get_couleur(get_case(plateau, (l-1, c)))
-    # if case.est_mur(get_case(plateau, (l+1, c)))==False and est_sur_plateau(plateau, (l+1, c)):
-    #         dico['S'] = case.get_couleur(get_case(plateau, (l+1, c)))
-    # if case.est_mur(get_case(plateau, (l, c-1)))==False and est_sur_plateau(plateau, (l, c-1)):
-    #         dico['O'] = case.get_couleur(get_case(plateau, (l, c-1)))
-    # if case.est_mur(get_case(plateau, (l, c+1)))==False and est_sur_plateau(plateau, (l, c+1)):
-    #         dico['E'] = case.get_couleur(get_case(plateau, (l, c+1)))
     dico = dict()
     l, c = pos
 
@@ -466,9 +456,3 @@ def distances_objets_joueurs(plateau, pos, distance_max):
                         visitee.add(voisin_pos)
                         queue.append((voisin_pos, distance + 1))
     return dico_distances
-
-
-
-
-
-
