@@ -429,55 +429,46 @@ def distances_objets_joueurs(plateau, pos, distance_max):
         return dico_distances
     
     # Utiliser une approche BFS (Breadth-First Search) pour contourner les murs
-    visited = set()
+    visitee = set()
     queue = [(pos, 0)]  # (position, distance)
-    visited.add(pos)
+    visitee.add(pos)
     index = 0
     
     while index < len(queue):
         pos_actuelle, distance = queue[index]
         index += 1
         
-        # Si on dépasse la distance max, on continue pas
-        if distance > distance_max:
-            continue
-        
-        # Récupérer la case actuelle
-        la_case = get_case(plateau, pos_actuelle)
-        
-        # Enregistrer les joueurs et objets
-        objet = case.get_objet(la_case)
-        joueurs = case.get_joueurs(la_case)
-        
-        if objet != const.AUCUN or len(joueurs) > 0:
-            if distance not in dico_distances:
-                dico_distances[distance] = set()
+        # Si on ne dépasse pas la distance max
+        if distance <= distance_max:
+            # Récupérer la case actuelle
+            la_case = get_case(plateau, pos_actuelle)
             
-            if objet != const.AUCUN:
-                dico_distances[distance].add(objet)
+            # Enregistrer les joueurs et objets
+            objet = case.get_objet(la_case)
+            joueurs = case.get_joueurs(la_case)
             
-            for joueur in joueurs:
-                dico_distances[distance].add(joueur)
-        
-        # Explorer les voisins si on n'a pas atteint la distance max
-        if distance < distance_max:
-            for direction in ['N', 'S', 'E', 'O']:
-                voisin_pos = (pos_actuelle[0] + INC_DIRECTION[direction][0], 
-                             pos_actuelle[1] + INC_DIRECTION[direction][1])
-                
-                # Vérifier que le voisin n'a pas déjà été visité
-                if voisin_pos not in visited:
-                    # Vérifier que le voisin est sur le plateau
-                    if est_sur_plateau(plateau, voisin_pos):
-                        # On ne traverse pas les murs sauf à la position initiale
-                        if distance > 0 and case.est_mur(get_case(plateau, voisin_pos)):
-                            continue
-                        # Si on est à distance 0 et le voisin est un mur, on ne l'ajoute pas
-                        if case.est_mur(get_case(plateau, voisin_pos)):
-                            continue
-                        visited.add(voisin_pos)
-                        queue.append((voisin_pos, distance + 1))
-                
+            if objet != const.AUCUN or len(joueurs) > 0:
+                if distance not in dico_distances:
+                    dico_distances[distance] = set()
+
+                if objet != const.AUCUN:
+                    dico_distances[distance].add(objet)
+
+                for joueur in joueurs:
+                    dico_distances[distance].add(joueur)
+
+            if distance < distance_max:
+                for direction in ['N', 'S', 'E', 'O']:
+                    voisin_pos = (pos_actuelle[0] + INC_DIRECTION[direction][0], 
+                                 pos_actuelle[1] + INC_DIRECTION[direction][1])
+                    
+                    if voisin_pos not in visitee:
+                        if est_sur_plateau(plateau, voisin_pos):
+                            
+                            # Vérifier si ce n'est pas un mur
+                            if not case.est_mur(get_case(plateau, voisin_pos)):
+                                visitee.add(voisin_pos)
+                                queue.append((voisin_pos, distance + 1))               
     return dico_distances
 
 
@@ -485,8 +476,3 @@ def distances_objets_joueurs(plateau, pos, distance_max):
 
 
 
-
-"""
-    dico_distances=dict()
-    for i 
-"""
