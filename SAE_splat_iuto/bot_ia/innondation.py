@@ -1,128 +1,68 @@
-def creer_file():
-    """Crée une file vide"""
-    return []
+# import argparse
+# import random
 
-def enfiler(file, element):
-    """Ajoute un élément à la fin de la file"""
-    file.append(element)
-
-def defiler(file):
-    """Retire et retourne le premier élément de la file"""
-    return file.pop(0)
-
-def file_vide(file):
-    """Vérifie si la file est vide"""
-    return len(file) == 0
+from bot_ia  import client
+from bot_ia  import const
+from bot_ia  import plateau
+from bot_ia  import case
+from bot_ia  import joueur
 
 
-def est_case_vide(case_obj):
-    """Vérifie si une case est vide (libre et sans objet)"""
-    return case_obj.est_libre() and case_obj.get_objet() == 0
+def Innondation(plateau, pos, distance_max):
+    """calcul les distances entre la position pos est les différents objets et
+        joueurs du plateau en se limitant à la distance max.
 
-def a_objet(case_obj, num_objet):
-    """Vérifie si une case contient un objet spécifique"""
-    return case_obj.get_objet() == num_objet
-
-def est_objectif_atteint(case_obj, position, pos_depart, cherche_case_vide, num_objet):
-    """Vérifie si on a trouvé ce qu'on cherche"""
-    if position == pos_depart:
-        return False
-    
-    if cherche_case_vide:
-        return est_case_vide(case_obj)
-    else:
-        return a_objet(case_obj, num_objet)
-
-
-
-def calculer_position_voisine(position, direction):
-    """Calcule la position d'un voisin selon une direction"""
-    ligne, col = position
-    delta_ligne, delta_col = INC_DIRECTION[direction]
-    return (ligne + delta_ligne, col + delta_col)
-
-def ajouter_voisin_a_explorer(nouvelle_pos, position_actuelle, visites, parents, file):
-    """Ajoute un voisin non visité à la file d'exploration"""
-    if nouvelle_pos not in visites:
-        # Marquer comme visité
-        visites.add(nouvelle_pos)
-        # Enregistrer le parent
-        parents[nouvelle_pos] = position_actuelle
-        # Ajouter à la file
-        enfiler(file, nouvelle_pos)
-
-def explorer_voisins(plateau, position_actuelle, visites, parents, file):
-    """Explore tous les voisins valides d'une position"""
-    voisins = directions_possibles(plateau, position_actuelle)
-    
-    for direction in voisins.keys():
-        nouvelle_pos = calculer_position_voisine(position_actuelle, direction)
-        ajouter_voisin_a_explorer(nouvelle_pos, position_actuelle, visites, parents, file)
-
-
-# ============= RECONSTRUCTION DU CHEMIN =============
-
-def reconstruire_chemin(parents, depart, arrivee):
-    """Reconstruit le chemin en remontant les parents"""
-    chemin = []
-    position = arrivee
-    
-    # Remonter de l'arrivée vers le départ
-    while position is not None:
-        chemin.append(position)
-        position = parents[position]
-    
-    # Inverser pour avoir départ → arrivée
-    chemin.reverse()
-    return chemin
-
-
-# ============= INITIALISATION =============
-
-def initialiser_recherche(pos_depart):
-    """Initialise les structures pour la recherche BFS"""
-    file = creer_file()
-    enfiler(file, pos_depart)
-    
-    visites = set()
-    visites.add(pos_depart)
-    
-    parents = {}
-    parents[pos_depart] = None
-    
-    return file, visites, parents
-
-
-# ============= ALGORITHME PRINCIPAL =============
-
-def trouver_chemin_bfs(plateau, pos_depart, cherche_case_vide=True, num_objet=None):
-    """Trouve le plus court chemin par inondation (BFS)
-    
     Args:
-        plateau: le plateau de jeu
-        pos_depart: position (ligne, colonne) de départ
-        cherche_case_vide: True pour chercher une case vide
-        num_objet: numéro de l'objet à chercher (si cherche_case_vide=False)
-    
+        plateau (dict): le plateau considéré
+        pos (tuple): une paire d'entiers indiquant la postion de calcul des distances
+        distance_max (int): un entier indiquant la distance limite de la recherche
     Returns:
-        list: le chemin, None si pas trouvé
-    """
-    # Initialisation
-    file, visites, parents = initialiser_recherche(pos_depart)
+        dict: un dictionnaire dont les clés sont des distances et les valeurs sont des ensembles
+            contenant à la fois des objets et des joueurs. Attention le dictionnaire ne doit contenir
+            des entrées uniquement pour les distances où il y a effectivement au moins un objet ou un joueur
+    """ 
+    # Type de dico voulu: {4: {4}, 10: {'D'}, 14: {3}, 15: {'E'}, 17: {1, 'C'}, 18: {'A', 'B'}}
+    dico_distances = dict()
     
-    # Boucle principale
-    while not file_vide(file):
-        # Prendre la prochaine case à explorer
-        position_actuelle = defiler(file)
-        case_actuelle = get_case(plateau, position_actuelle)
-        
-        # Vérifier si c'est l'objectif
-        if est_objectif_atteint(case_actuelle, position_actuelle, pos_depart, 
-                                 cherche_case_vide, num_objet):
-            return reconstruire_chemin(parents, pos_depart, position_actuelle)
-        
-        # Explorer les voisins
-        explorer_voisins(plateau, position_actuelle, visites, parents, file)
+    # Vérifier si la position de départ est sur le plateau
+    if not plateau.est_sur_plateau(plateau, pos):
+        return dico_distances
     
-    # Aucun chemin trouvé
-    return None
+    # Utiliser une approche BFS (Breadth-First Search) pour contourner les murs
+    visitee = set()
+    queue = [(pos, 0)]  # (position, distance)
+    visitee.add(pos)
+    index = 0
+    
+    while index < len(queue):
+        pos_actuelle, distance = queue[index]
+        index += 1
+        
+        # Si on ne dépasse pas la distance max
+        if distance <= distance_max:
+            # Récupérer la case actuelle
+            la_case = plateau.get_case(plateau, pos_actuelle)
+            
+            # Enregistrer les joueurs et objets
+            objet = case.get_objet(la_case)
+            joueurs = case.get_joueurs(la_case)
+            
+            if objet != const.AUCUN or len(joueurs) > 0:
+                if distance not in dico_distances:
+                    dico_distances[distance] = dict
+
+                if objet != const.AUCUN:
+                    dico_distances[distance]['Objet'] = (objet)
+
+                for joueur in joueurs:
+                    dico_distances[distance]['Joueur'] = {joueur}
+                dico_distances[distance]['Pos'] = pos_actuelle
+
+            if distance < distance_max:
+                for dir_nom in plateau.directions_possibles(plateau, pos_actuelle):
+                    voisin_pos = (pos_actuelle[0] + plateau.INC_DIRECTION[dir_nom][0],
+                                  pos_actuelle[1] + plateau.INC_DIRECTION[dir_nom][1])
+                    if voisin_pos not in visitee:
+                        visitee.add(voisin_pos)
+                        queue.append((voisin_pos, distance + 1))
+    return dico_distances

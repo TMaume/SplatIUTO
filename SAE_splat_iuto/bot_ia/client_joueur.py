@@ -48,6 +48,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         str: une chaine de deux caractères en majuscules indiquant la direction de peinture
             et la direction de déplacement
     """
+
     # priorité 0 : si notre peinture est a 0 aller marcher sur notre peinture  (peinture_zero())
     # priorité 1 : si notre peinture est negative aller chercher un bidon sans prendre en compte les autres priorités mise a part la 1 et la 2
     # priorité 2 : si un joueur adverse est à portée de tir, le viser
@@ -57,6 +58,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
     # priorité 6 : rester a distance des autres joueurs
     # priorité 7 : si on a un pistolet tirer sur les murs
     # priorité 8 : peindre dans une zone avec le moins de peinture enemie et moins de notre peinture
+    
     for joueur in les_joueurs:
         if joueur["couleur"] == ma_couleur:
             notre_IA = joueur
@@ -107,6 +109,24 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
             nb_joueurs_dans_direction = nb_joueurs_direction(plateau, notre_IA["position"], direction, const.PORTEE_PEINTURE)
             if nb_joueurs_dans_direction > 0 and joueur.get_reserve(notre_IA)>0:
                 return direction
+
+
+    def distance_vers_cible(cible, notre_IA):
+
+        def heuristique(a,b):
+            return abs(a[0]-b[0])+abs(a[1]-b[1])
+        depart = joueur.get_pos(notre_IA)
+        liste_case_a_explorer = [depart]
+        liste_case_deja_explorer = []
+
+        cout_chemin = {depart:0}
+
+        while liste_case_a_explorer:
+            actuel = min(liste_case_a_explorer, key=lambda x: g[x] + heuristique(x,cible))
+
+            if actuel == cible:
+                return liste
+
 
     
 
