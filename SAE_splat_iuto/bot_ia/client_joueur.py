@@ -29,7 +29,7 @@ from bot_ia  import case
 from bot_ia  import joueur
 from bot_ia  import innondation
 
-def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
+def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
     """ Cette fonction permet de calculer les deux actions du joueur de couleur ma_couleur
         en fonction de l'état du jeu décrit par les paramètres. 
         Le premier caractère est parmi XSNOE X indique pas de peinture et les autres
@@ -49,30 +49,12 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         str: une chaine de deux caractères en majuscules indiquant la direction de peinture
             et la direction de déplacement
     """
+    notre_IA = les_joueurs[ma_couleur]
 
-    #### priorité 0 : si notre peinture est a 0 aller marcher sur notre peinture  (peinture_zero())
-    #### priorité 1 : si notre peinture est negative aller chercher un bidon sans prendre en compte les autres priorités mise a part la 1 et la 2
-    #### priorité 2 : si un joueur adverse est à portée de tir, le viser
-    #### priorité 3 : aller chercher un bonus si on en a pas
-    #### priorité 4 : se déplacer sur une case non peinte ou de notre couleur
-    #### priorité 5 : si l'on a un bouclier actif aller en direction des adversaires pour les toucher
-    #--- priorité 6 : rester a distance des autres joueurs
-    #### priorité 7 : si on a un pistolet tirer sur les murs
-    #--- priorité 8 : peindre dans une zone avec le moins de peinture enemie et moins de notre peinture
-    
-    
-
-                
-        #------- Peintures a zéro -------#
+    # Fonctions internes corrigées
     def deplacement_peinture_zero(notre_IA, le_plateau, distance_max):
-        """
-        Utilise Innondation pour trouver la peinture du joueur la plus proche
-        et renvoie la direction pour s'en rapprocher.
-        """
-
-        ma_couleur = joueur.get_couleur(notre_IA)
+        ma_couleur = joueur.get_couleur(notre_IA) # Le module 'joueur' est bien accessible
         ma_pos = joueur.get_pos(notre_IA)
-        
         voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
         
         if not voisins_possibles:
@@ -81,37 +63,34 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         meilleure_direction = None
         min_distance_trouvee = distance_max + 1
         
-
         for direction in voisins_possibles:
             if voisins_possibles[direction] == ma_couleur:
                 return direction, 'X'
             
             inc = plateau.INC_DIRECTION[direction]
             pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
-
+            
+            # Recherche de la couleur du joueur
             resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='C', C_cherche=ma_couleur)
             
             if resultat:
+                # On cherche la distance minimale parmi les résultats
                 dist_min_scan = min(cle[0] for cle in resultat.keys())
-                
                 if dist_min_scan < min_distance_trouvee:
                     min_distance_trouvee = dist_min_scan
                     meilleure_direction = direction
         
-
         if meilleure_direction:
             return meilleure_direction, 'X'
         
-        choix_vides = [directionCase for directionCase, couleurCase in voisins_possibles.items() if couleurCase == ' ']
+        # Fallback
+        choix_vides = [d for d, c in voisins_possibles.items() if c == ' ']
         if choix_vides:     
             return random.choice(choix_vides), 'X'  
-            
         return random.choice(list(voisins_possibles.keys())), 'X'
 
-        #------- Peintures négatives -------#
     def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
         ma_pos = joueur.get_pos(notre_IA)
-        
         voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
         
         if not voisins_possibles:
@@ -121,40 +100,28 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         min_distance_trouvee = distance_max + 1
 
         for direction in voisins_possibles:
-
             inc = plateau.INC_DIRECTION[direction]
             pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
-
             resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='O', O_cherche=const.BIDON)
             
             if resultat:
-
                 dist_min_scan = min(cle[0] for cle in resultat.keys())
-                
                 if dist_min_scan < min_distance_trouvee:
                     min_distance_trouvee = dist_min_scan
                     meilleure_direction = direction
         
-
         if meilleure_direction:
             return meilleure_direction, 'X'
 
-        choix_safe = [directionCase for directionCase, couleurCase in voisins_possibles.items() if couleurCase == ' ']
-        
+        choix_safe = [d for d, c in voisins_possibles.items() if c == ' ']
         if choix_safe:     
-            return random.choice(choix_safe) ,'X' 
-            
+            return random.choice(choix_safe), 'X' 
         return random.choice(list(voisins_possibles.keys())), 'X'
     
-        #------- Déplacement vers objet non défini -------#
     def deplacement_vers_objet(notre_IA, le_plateau, distance_max):
-        """
-        utilise Innondation pour trouver l'objet le plus proche
-        et renvoie la direction pour s'en rapprocher.   
-        """
         ma_pos = joueur.get_pos(notre_IA)
+        ma_coul = joueur.get_couleur(notre_IA)
         dirTir = 'X'
-        
         voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
         
         if not voisins_possibles:
@@ -164,26 +131,30 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         min_distance_trouvee = distance_max + 1
 
         for direction in voisins_possibles:
-
             inc = plateau.INC_DIRECTION[direction]
             pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
-
             resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='O')
             
             if resultat:
-
-                dist_min_scan = min(cle[0] for cle in resultat.keys())
+                # Trouver la clé (dist, pos) qui a la distance minimale
+                cle_min = min(resultat.keys(), key=lambda k: k[0])
+                dist_min_scan = cle_min[0]
                 
                 if dist_min_scan < min_distance_trouvee:
                     min_distance_trouvee = dist_min_scan
                     meilleure_direction = direction
-                    if dist_min_scan['couleur'] != ma_couleur:
+                    
+                    # Logique de tir : on vérifie la case voisine immédiate pour le tir
+                    # (Note: votre logique originale essayait d'accéder à 'couleur' sur un entier)
+                    if voisins_possibles[direction] != ma_coul:
                         dirTir = direction
                     else:
-                        dirTir = max(plateau.INC_DIRECTION, key=lambda dir: plateau.nb_joueurs_direction(le_plateau, notre_IA['position'],dir, const.PORTEE_PEINTURE))
+                         # Tirer là où il y a le plus de monde
+                        dirTir = max(plateau.INC_DIRECTION, key=lambda d: plateau.nb_joueurs_direction(le_plateau, ma_pos, d, const.PORTEE_PEINTURE))
 
         if meilleure_direction:
             return meilleure_direction, dirTir
+        return random.choice(list(voisins_possibles.keys())), 'X'
         
     def deplacement_vers_vide(notre_IA, le_plateau, distance_max):
         """
@@ -262,23 +233,29 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         
         return None
 
-    # Programme principal
-    for joueur in les_joueurs:
-        if joueur["couleur"] == ma_couleur:
-            notre_IA = joueur
-    
-    #deplacement
-    
-    if joueur.get_reserve(notre_IA) == 0: # aller se recharger quand on a plus de peinture
-        deplacement,tir = deplacement_peinture_zero(notre_IA, plateau, 5)
-    elif joueur.get_reserve(notre_IA) < 0: # si notre reserve de peinture est negative aller chercher un bideon
-        deplacement,tir = deplacement_peinture_negative(notre_IA, plateau, 5)
-    elif joueur.get_objet(notre_IA) == 0: # si on a pas d'objet 
-        deplacement,tir = deplacement_vers_objet(notre_IA, plateau, 5)
-    
+    deplacement = 'X'
+    tir = 'X'
+
+    # Choix de l'action
+    if joueur.get_reserve(notre_IA) == 0: 
+        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, 5)
+    elif joueur.get_reserve(notre_IA) < 0: 
+        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, 5)
+    elif joueur.get_objet(notre_IA) == 0:  
+        result = deplacement_vers_objet(notre_IA, le_plateau, 5)
+        if result: # Sécurité si la fonction renvoie None
+             deplacement, tir = result
+        else:
+             # Comportement par défaut si pas d'objet trouvé
+             vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
+             if vals: deplacement = random.choice(vals)
+    else:
+        # Cas où on a de la réserve et un objet (non géré dans votre code original)
+        # On ajoute un comportement simple : bouger au hasard
+        vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
+        if vals: deplacement = random.choice(vals)
+        
     return deplacement, tir
-    # if joueur.get_objet(notre_IA) == const.BOUCLIER and joueur.get_reserve() > 5:
-    #     attaquer_bouclier(notre_IA, plateau, les_joueurs)
 
 
     # IA complètement aléatoire
