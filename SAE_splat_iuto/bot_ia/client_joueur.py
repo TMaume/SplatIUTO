@@ -131,7 +131,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
 
             liste_case_a_explorer.remove(actuel)
 
-            for voisin in get_direction(directions_possibles.(plateau,actuel).keys(), actuel):
+            for voisin in get_direction(plateau.directions_possibles(plateau,actuel).keys(), actuel):
                 tentative = cout_chemin[actuel] + 1
                 if voisin not in cout_chemin or tentative < cout_chemin[voisin]:
                     liste_case_deja_explorer[voisin] = actuel

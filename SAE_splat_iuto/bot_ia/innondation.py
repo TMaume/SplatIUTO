@@ -1,25 +1,27 @@
-# import argparse
-# import random
+from bot_ia import client
+from bot_ia import const
+from bot_ia import plateau
+from bot_ia import case
+from bot_ia import joueur
 
-from bot_ia  import client
-from bot_ia  import const
-from bot_ia  import plateau
-from bot_ia  import case
-from bot_ia  import joueur
-
-
-def Innondation(plateau, pos, distance_max, recherche=None):
-    """Fonction de l'innondation qui prend en considération les murs.
+def Innondation(le_plateau, pos, distance_max, recherche=None):
+    """Fonction de l'innondation qui prend en considération un objet en recherche.
+    Args:
+        le_plateau (Plateau): Le plateau de jeu.
+        pos (tuple): La position de départ (x, y).
+        distance_max (int): La distance maximale à parcourir.
+        recherche (str, optional): Type de recherche ('J', 'O', 'C', None). Defaults to None.
+    Returns:
+        dict: {(distance, (x,y)): {'Objet': ..., 'Joueur': ...}}
     """
 
-    # Type de dico voulu: {4: {objet: 4, pos : (x, y) Joueur : 'A' }}
+    # Nouvelle structure de clé : (distance, position)
     dico_distances = dict()
     
     # Vérifier si la position de départ est sur le plateau
-    if not plateau.est_sur_plateau(plateau, pos):
+    if not plateau.est_sur_plateau(le_plateau, pos):
         return dico_distances
     
-    # Utiliser une approche BFS (Breadth-First Search) pour contourner les murs
     visitee = set()
     queue = [(pos, 0)]  # (position, distance)
     visitee.add(pos)
@@ -32,67 +34,59 @@ def Innondation(plateau, pos, distance_max, recherche=None):
 
         # Si on ne dépasse pas la distance max
         if distance <= distance_max:
-            # Récupérer la case actuelle
-            la_case = plateau.get_case(plateau, pos_actuelle)
+            la_case = plateau.get_case(le_plateau, pos_actuelle)
             
-            # Enregistrer les joueurs et objets
-            if recherche == 'J': #Recherche uniquement les joueurs
+            # Dictionnaire temporaire pour stocker ce qu'on trouve sur CETTE case
+            infos_case = {}
+
+            # --- CAS 1 : Recherche de JOUEURS ---
+            if recherche == 'J': 
                 joueurs = case.get_joueurs(la_case)
+                if len(joueurs) > 0:
+                    infos_case['Joueur'] = joueurs # On stocke l'ensemble des joueurs
+                    rechercheFound = True # On arrête car on as trouvé notre object
 
-                if len(joueur) > 0:
-                    if distance not in dico_distances:
-                        dico_distances[distance] = dict()
-                    
-                    for joueur in joueurs:
-                        dico_distances[distance]['Joueur'] = {joueur}
-                    dico_distances[distance]['Pos'] = pos_actuelle
-                    print(dico_distances[distance])
-
-
-            elif recherche == 'O': #Recherche uniquement les objets
+            # --- CAS 2 : Recherche d'OBJETS ---
+            elif recherche == 'O': 
                 objet = case.get_objet(la_case)
-                
                 if objet != const.AUCUN:
-                    if distance not in dico_distances:
-                        dico_distances[distance] = dict()
+                    infos_case['Objet'] = objet
+                    rechercheFound = True
 
-                    if objet != const.AUCUN:
-                        dico_distances[distance]['Objet'] = objet
-            
+            # --- CAS 3 : Recherche de COULEUR ---
             elif recherche == 'C':
                 couleur = case.get_couleur(la_case)
                 if couleur != ' ':
-                    if distance not in dico_distances:
-                        dico_distances[distance] = dict()
-                    if couleur != ' ':
-                        dico_distances[distance]['Couleur'] =  couleur
+                    infos_case['Couleur'] = couleur
+                    rechercheFound = True
 
+            # --- CAS 4 : Recherche TOUT ---
             else:
                 objet = case.get_objet(la_case)
                 joueurs = case.get_joueurs(la_case)
                 couleur = case.get_couleur(la_case)
             
-                if objet != const.AUCUN or len(joueurs) > 0 or couleur != ' ':
-                    if distance not in dico_distances:
-                        dico_distances[distance] = dict()
+                if objet != const.AUCUN:
+                    infos_case['Objet'] = objet
+                
+                if len(joueurs) > 0:
+                    infos_case['Joueur'] = joueurs
+                    
+                if couleur != ' ':
+                    infos_case['Couleur'] = couleur
 
-                    if objet != const.AUCUN:
-                        dico_distances[distance]['Objet'] = objet
-
-                    for joueur in joueurs:
-                        dico_distances[distance]['Joueur'] = {joueur}
-                        
-                    if couleur != ' ':
-                        dico_distances[distance]['Couleur'] =  couleur
-                        
-                    dico_distances[distance]['Pos'] = pos_actuelle
+            if infos_case:
+                dico_distances[(distance, pos_actuelle)] = infos_case
 
 
+            # --- Gestion des voisins ---
             if distance < distance_max:
-                for dir_nom in plateau.directions_possibles(plateau, pos_actuelle):
-                    voisin_pos = (pos_actuelle[0] + plateau.INC_DIRECTION[dir_nom][0],
-                                  pos_actuelle[1] + plateau.INC_DIRECTION[dir_nom][1])
+                for dir_nom in plateau.directions_possibles(le_plateau, pos_actuelle):
+                    inc = plateau.INC_DIRECTION[dir_nom]
+                    voisin_pos = (pos_actuelle[0] + inc[0], pos_actuelle[1] + inc[1])
+                    
                     if voisin_pos not in visitee:
                         visitee.add(voisin_pos)
                         queue.append((voisin_pos, distance + 1))
+                        
     return dico_distances

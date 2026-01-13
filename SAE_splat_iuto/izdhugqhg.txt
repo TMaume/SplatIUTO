@@ -91,3 +91,10 @@ def get_ligne(matrice, num_ligne):
 
 def get_colonne(matrice, num_colonne):
     return [matrice[i][num_colonne] for i in range(len(matrice))]
+
+
+
+random.choice("XNSOE") +random.choice("NSEO")
+
+"NXSOE" C'est ou il tir l'objet. x(utilise ou pas) 
+NSOE(dirrecition) 
