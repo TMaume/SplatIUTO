@@ -64,46 +64,55 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         if joueur["couleur"] == ma_couleur:
             notre_IA = joueur
 
-    calque_proche = innondation.Innondation(le_plateau, notre_IA['position'], 7)
-
                 
 
-    def deplacement_peinture_zero(notre_IA, Distance_max):
-        if joueur.get_reserve(notre_IA) == 0:
-            pos = notre_IA["position"]
-            voisins = plateau.directions_possibles(plateau,pos)
-            for direction in voisins.key():
-                if voisins[direction] == notre_IA["couleur"]:
-                    return direction
-                else:
-                    if voisins[direction] == " ":
-                        return direction
-                    else:
-                        match direction:
-                            case "N":
-                                if voisins["S"] == " ":
-                                    return "S"
-                            case "O":
-                                if voisins["E"] == " ":
-                                    return "E"
-                            case "E":
-                                if voisins["O"] == " ":
-                                    return "O"
-                            case "S":
-                                if voisins["N"] == " ":
-                                    return "N"
-                        return random.choice("NSEO")
+    def deplacement_peinture_zero(notre_IA, le_plateau, distance_max):
+        """
+        Utilise Innondation pour trouver la peinture du joueur la plus proche
+        et renvoie la direction pour s'en rapprocher.
+        """
+
+        ma_couleur = joueur.get_couleur(notre_IA)
+        ma_pos = joueur.get_pos(notre_IA)
+        
+        voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
+        
+        if not voisins_possibles:
+            return random.choice("NSEO")
+
+        meilleure_direction = None
+        min_distance_trouvee = distance_max + 1
+
+        for direction in voisins_possibles:
+            if voisins_possibles[direction] == ma_couleur:
+                return direction
+            
+            inc = plateau.INC_DIRECTION[direction]
+            pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
+
+            resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='C', valeur_cherche=ma_couleur)
+            
+            if resultat:
+                dist_min_scan = min(cle[0] for cle in resultat.keys())
+                
+                if dist_min_scan < min_distance_trouvee:
+                    min_distance_trouvee = dist_min_scan
+                    meilleure_direction = direction
+        
+
+        if meilleure_direction:
+            return meilleure_direction
+        
+        choix_vides = [directionCase for directionCase, couleurCase in voisins_possibles.items() if couleurCase == ' ']
+        if choix_vides:     
+            return random.choice(choix_vides)   
+            
+        return random.choice(list(voisins_possibles.keys()))
 
 
     def deplacement_peinture_negative(notre_IA):
         ...
-        
-    def tirer_sur_ennemie(notre_IA, plateau):
-        for direction in ["N", "E", "O", "S"]:
-            nb_joueurs_dans_direction = nb_joueurs_direction(plateau, notre_IA["position"], direction, const.PORTEE_PEINTURE)
-            if nb_joueurs_dans_direction > 0 and joueur.get_reserve(notre_IA)>0:
-                return direction
-
+    
 
     def a_etoile(cible, notre_IA, plateau):
         
