@@ -390,7 +390,7 @@ def nb_joueurs_direction(plateau, pos, direction, distance_max):
 
     NvPos = (pos[0] + INC_DIRECTION[direction][0], pos[1] + INC_DIRECTION[direction][1])
     i = 0
-    while i < distance_max and est_sur_plateau(plateau, NvPos) and case.est_mur(get_case(plateau, NvPos))==False:
+    while i < distance_max and est_sur_plateau(plateau, NvPos) and case.est_mur(get_case(plateau, NvPos))==False and direction is not 'X':
             case_actuelle = get_case(plateau, NvPos)
             nb_joueurs_portee += case.get_nb_joueurs(case_actuelle)
             NvPos = (NvPos[0] + INC_DIRECTION[direction][0], NvPos[1] + INC_DIRECTION[direction][1])

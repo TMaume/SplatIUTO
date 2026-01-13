@@ -221,33 +221,11 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         
         #------- Tir sur ennemi avec const.PORTEE_PEINTURES -------#
     def direction_tir_ennemi(notre_IA, le_plateau, les_joueurs, carac_jeu):
-        portee = const.PORTEE_PEINTURE 
-        ma_lig, ma_col = joueur.get_pos(notre_IA) 
-
-        positions_ennemis = set()
-        for adv in les_joueurs.values():
-            if joueur.get_couleur(adv) != joueur.get_couleur(notre_IA):
-                positions_ennemis.add(joueur.get_pos(adv))
-        directions = plateau.INC_DIRECTION 
-
-        for sens, (d_lig, d_col) in directions.items():
-            if sens == 'X': continue 
-
-            for i in range(1, portee + 1):
-                cible = (ma_lig + d_lig * i, ma_col + d_col * i)
-
-                if not plateau.est_sur_plateau(le_plateau, cible):
-                    break 
-                
-                la_case = plateau.get_case(le_plateau, cible) 
-
-                if case.est_mur(la_case): 
-
-                    break 
-                if cible in positions_ennemis:
-                    return sens, sens
-                    
-        return None
+        return max(plateau.INC_DIRECTION, 
+                   key=lambda dir: plateau.nb_joueurs_direction(le_plateau, 
+                                                                notre_IA['position'],
+                                                                dir, 
+                                                                const.PORTEE_PEINTURE))
 
         #------- Tir sur mur avec const.PISTOLET pour peindre le mur -------#
     def tirer_sur_mur(notre_IA, le_plateau, carac_jeu):
@@ -296,7 +274,10 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
     elif joueur.get_objet(notre_IA) == 0: # si on a pas d'objet 
         deplacement = deplacement_vers_objet(notre_IA, plateau, 7)
 
+
     
+    ennemie_a_proximite = 0
+    for dir in ["N", ""]
     dir_tir = direction_tir_ennemi(notre_IA, le_plateau, les_joueurs, carac_jeu)
     if joueur.get_objet(notre_IA) == const.BOUCLIER and joueur.get_reserve() > 5:
         attaquer_bouclier(notre_IA, plateau, les_joueurs)
