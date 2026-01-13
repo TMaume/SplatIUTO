@@ -18,7 +18,6 @@ Tous droits réservés.
 Module contenant l'implémentation de l'IA et le programme principal du joueur
 """
 
-
 import argparse
 import random
 
@@ -28,6 +27,10 @@ from bot_ia  import plateau
 from bot_ia  import case
 from bot_ia  import joueur
 from bot_ia  import innondation
+
+# -------------------------------------------------------------------------
+#                         FONCTIONS UTILITAIRES
+# -------------------------------------------------------------------------
 
 def _get_voisin_safe(le_plateau, pos, direction):
     """Renvoie la couleur du voisin dans la direction donnée, ou None si impossible"""
@@ -43,19 +46,14 @@ def _deplacement_peinture_zero(notre_IA, le_plateau, distance_max):
     """Cherche la case de notre couleur la plus proche et y va."""
     ma_couleur = joueur.get_couleur(notre_IA)
     ma_pos = joueur.get_pos(notre_IA)
-    
-    # Appel optimisé : 1 seul scan depuis notre position
     resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='C', C_cherche=ma_couleur)
     
     if resultat:
-        # Trouver la cible la plus proche
         cle_min = min(resultat.keys(), key=lambda k: k[0])
         info = resultat[cle_min]
-        # Innondation nous donne maintenant la direction de départ !
         if 'Direction' in info and info['Direction']:
             return info['Direction'], 'X'
             
-    # Fallback : mouvement aléatoire vers une case vide si possible
     voisins = plateau.directions_possibles(le_plateau, ma_pos)
     choix_vides = [d for d, c in voisins.items() if c == ' ']
     if choix_vides: return random.choice(choix_vides), 'X'
@@ -65,7 +63,6 @@ def _deplacement_peinture_zero(notre_IA, le_plateau, distance_max):
 def _deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
     """Cherche un bidon pour recharger."""
     ma_pos = joueur.get_pos(notre_IA)
-    
     resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='O', O_cherche=const.BIDON)
     
     if resultat:
@@ -73,11 +70,10 @@ def _deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
         info = resultat[cle_min]
         if 'Direction' in info and info['Direction']:
             return info['Direction'], 'X'
-
-    voisins = plateau.directions_possibles(le_plateau, ma_pos)
-    choix_safe = [d for d, c in voisins.items() if c == ' ']
-    if choix_safe: return random.choice(choix_safe), 'X'
-    if voisins: return random.choice(list(voisins.keys())), 'X'
+    
+    # Si pas de bidon, on bouge au hasard
+    vals = list(plateau.directions_possibles(le_plateau, ma_pos).keys())
+    if vals: return random.choice(vals), 'X'
     return 'X', 'X'
 
 def _deplacement_vers_objet(notre_IA, le_plateau, distance_max):
@@ -94,47 +90,83 @@ def _deplacement_vers_objet(notre_IA, le_plateau, distance_max):
         if 'Direction' in info and info['Direction']:
             best_dir = info['Direction']
             dirTir = 'X'
-            
-            # Logique de tir : si la case où je vais n'est pas à moi, je peins
+            # On tire si on va sur une case ennemie
             couleur_voisin = _get_voisin_safe(le_plateau, ma_pos, best_dir)
             if couleur_voisin is not None and couleur_voisin != ma_coul:
                 dirTir = best_dir
-            else:
-                # Sinon tir opportuniste
-                dirTir = max(plateau.INC_DIRECTION, key=lambda d: plateau.nb_joueurs_direction(le_plateau, ma_pos, d, const.PORTEE_PEINTURE))
-                
             return best_dir, dirTir
-
-    # Fallback
-    voisins = list(plateau.directions_possibles(le_plateau, ma_pos).keys())
-    if voisins: return random.choice(voisins), 'X'
-    return 'X', 'X'
-
-def _deplacement_vers_vide(notre_IA, le_plateau, distance_max):
-    """Cherche une case non peinte."""
-    ma_pos = joueur.get_pos(notre_IA)
-    ma_coul = joueur.get_couleur(notre_IA)
-    
-    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='C', C_cherche=' ')
-    
-    if resultat:
-        cle_min = min(resultat.keys(), key=lambda k: k[0])
-        info = resultat[cle_min]
-        
-        if 'Direction' in info and info['Direction']:
-            best_dir = info['Direction']
-            dirTir = 'X'
-            
-            # Si le chemin est bloqué par une couleur adverse, on tire
-            couleur_voisin = _get_voisin_safe(le_plateau, ma_pos, best_dir)
-            if couleur_voisin is not None and couleur_voisin != ma_coul:
-                dirTir = best_dir
-                
-            return best_dir, dirTir
-            
     return None
 
-def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
+
+def _deplacement_vers_vide_custom(notre_IA, le_plateau, distance_max):
+    """
+    Cherche à s'orienter vers une zone vide (non peinte).
+    Retourne (direction_deplacement, direction_tir)
+    """
+    ma_pos = joueur.get_pos(notre_IA)
+    ma_couleur = joueur.get_couleur(notre_IA) # Correction: variable manquante
+    dirTir = 'X'
+    
+    voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
+    
+    if not voisins_possibles:
+        # Bloqué ? On tente un mouvement au hasard
+        return random.choice("NSEO"), 'X'
+
+    meilleure_direction = None
+    min_distance_trouvee = distance_max + 1
+
+    # On simule un départ depuis chaque voisin pour voir lequel est le plus proche du vide
+    for direction in voisins_possibles:
+        inc = plateau.INC_DIRECTION[direction]
+        pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
+
+        # On lance l'inondation depuis le voisin
+        resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='C', C_cherche=' ')
+        
+        if resultat:
+            # On cherche la distance minimale dans les résultats
+            dist_min_scan = min(cle[0] for cle in resultat.keys())
+            
+            if dist_min_scan < min_distance_trouvee:
+                min_distance_trouvee = dist_min_scan
+                meilleure_direction = direction
+                
+                # Correction logique tir : si la case immédiate n'est pas à nous, on la peint
+                couleur_case_visée = plateau.get_case(le_plateau, pos_voisin).get_couleur()
+                if couleur_case_visée != ma_couleur:
+                    dirTir = direction
+
+    if meilleure_direction:
+        return meilleure_direction, dirTir
+    
+    # Si rien trouvé, on prend une direction possible au hasard
+    return random.choice(list(voisins_possibles.keys())), 'X'
+
+
+def _direction_tir_ennemi(notre_IA, le_plateau):
+    """
+    Renvoie la direction où il y a le plus d'ennemis à portée.
+    Renvoie 'X' si personne.
+    """
+    ma_pos = joueur.get_pos(notre_IA)
+    # On utilise la fonction du plateau qui compte les joueurs
+    # Attention: nb_joueurs_direction renvoie un nombre, on cherche le max
+    
+    meilleure_dir = 'X'
+    max_ennemis = 0
+    
+    for direction in "NESO":
+        # nb_joueurs_direction semble exister dans plateau.py d'après votre code
+        nb = plateau.nb_joueurs_direction(le_plateau, ma_pos, direction, const.PORTEE_PEINTURE)
+        if nb > max_ennemis:
+            max_ennemis = nb
+            meilleure_dir = direction
+            
+    return meilleure_dir
+
+
+def _tirer_sur_mur(notre_IA, le_plateau):
     """ Cette fonction permet de calculer les deux actions du joueur de couleur ma_couleur
         en fonction de l'état du jeu décrit par les paramètres. 
         Le premier caractère est parmi XSNOE X indique pas de peinture et les autres
@@ -154,6 +186,38 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
         str: une chaine de deux caractères en majuscules indiquant la direction de peinture
             et la direction de déplacement
     """
+    # On ne fait ça que si on a le pistolet (seul objet qui perce/peint les murs efficacement)
+    if joueur.get_objet(notre_IA) != const.PISTOLET:
+        return None
+
+    portee = 5 # Portée améliorée du pistolet ou standard
+    ma_lig, ma_col = joueur.get_pos(notre_IA) 
+    directions = plateau.INC_DIRECTION 
+
+    for sens, (d_lig, d_col) in directions.items():
+        if sens == 'X': continue 
+
+        # On regarde dans la direction
+        for i in range(1, portee + 1):
+            cible = (ma_lig + d_lig * i, ma_col + d_col * i)
+            if not plateau.est_sur_plateau(le_plateau, cible):
+                break
+                
+            la_case = plateau.get_case(le_plateau, cible) 
+            # Si c'est un mur, c'est une cible valide pour le pistolet
+            if case.est_mur(la_case): 
+                return sens 
+                
+    return None
+
+# -------------------------------------------------------------------------
+#                            IA PRINCIPALE
+# -------------------------------------------------------------------------
+
+def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
+    """
+    Logique principale de l'IA
+    """
     notre_IA = les_joueurs[ma_couleur]
     deplacement = 'X'
     tir = 'X'
@@ -161,30 +225,49 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
     reserve = joueur.get_reserve(notre_IA)
     objet_tenu = joueur.get_objet(notre_IA)
 
-    # Choix de l'action
+    # 1. URGENCE : Plus de peinture ?
     if reserve == 0: 
-        deplacement, tir = _deplacement_peinture_zero(notre_IA, le_plateau, 7)
+        res = _deplacement_peinture_zero(notre_IA, le_plateau, 25)
+        if res: deplacement, tir = res
+            
+    # 2. PENALITE : Réserve négative ?
     elif reserve < 0: 
-        deplacement, tir = _deplacement_peinture_negative(notre_IA, le_plateau, 7)
-    elif objet_tenu == 0:  
-        result = _deplacement_vers_objet(notre_IA, le_plateau, 7)
-        if result: 
-             deplacement, tir = result
-        else:
-             # Si pas d'objet, on cherche du vide
-             result_vide = _deplacement_vers_vide(notre_IA, le_plateau, 7)
-             if result_vide:
-                 deplacement, tir = result_vide
-             else:
-                 vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
-                 if vals: deplacement = random.choice(vals)
+        res = _deplacement_peinture_negative(notre_IA, le_plateau, 25)
+        if res: deplacement, tir = res
+            
+    # 3. COMBAT / STRATEGIE OBJET
     else:
-        # On a un objet et de la réserve
-        vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
-        if vals: deplacement = random.choice(vals)
+        # A. Si on a le PISTOLET, on regarde si on peut peindre un mur (stratégie spécifique)
+        tir_mur = _tirer_sur_mur(notre_IA, le_plateau)
+        if tir_mur:
+            tir = tir_mur
+            # On essaie de bouger quand même
+            vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
+            if vals: deplacement = random.choice(vals)
         
-    return tir+deplacement
+        # B. Sinon, on cherche d'abord un objet si on n'en a pas
+        elif objet_tenu == 0:
+            res_obj = _deplacement_vers_objet(notre_IA, le_plateau, 28)
+            if res_obj:
+                deplacement, tir = res_obj
+            else:
+                # Pas d'objet proche, on cherche le vide avec votre fonction custom
+                deplacement, tir = _deplacement_vers_vide_custom(notre_IA, le_plateau, 28)
+        
+        # C. On a un objet (autre que pistolet utilisé) ou pas d'objet trouvé
+        else:
+             # On se déplace vers le vide
+             deplacement, tir = _deplacement_vers_vide_custom(notre_IA, le_plateau, 28)
 
+        # D. SURCHARGE TIR : Si on n'a pas prévu de tirer pour peindre le sol ('X'), 
+        # on regarde si on peut tirer sur un ennemi
+        if tir == 'X':
+            tir_ennemi = _direction_tir_ennemi(notre_IA, le_plateau)
+            if tir_ennemi != 'X':
+                tir = tir_ennemi
+
+    # 4. RETOUR AU SERVEUR (TIR + DEPLACEMENT)
+    return tir + deplacement
     # IA complètement aléatoire
     # return random.choice("XNSOE")+random.choice("NSEO")
 
