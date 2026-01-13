@@ -163,16 +163,16 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
 
     # Choix de l'action
     if reserve == 0: 
-        deplacement, tir = _deplacement_peinture_zero(notre_IA, le_plateau, 5)
+        deplacement, tir = _deplacement_peinture_zero(notre_IA, le_plateau, 7)
     elif reserve < 0: 
-        deplacement, tir = _deplacement_peinture_negative(notre_IA, le_plateau, 5)
+        deplacement, tir = _deplacement_peinture_negative(notre_IA, le_plateau, 7)
     elif objet_tenu == 0:  
-        result = _deplacement_vers_objet(notre_IA, le_plateau, 5)
+        result = _deplacement_vers_objet(notre_IA, le_plateau, 7)
         if result: 
              deplacement, tir = result
         else:
              # Si pas d'objet, on cherche du vide
-             result_vide = _deplacement_vers_vide(notre_IA, le_plateau, 5)
+             result_vide = _deplacement_vers_vide(notre_IA, le_plateau, 7)
              if result_vide:
                  deplacement, tir = result_vide
              else:
@@ -183,7 +183,7 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
         vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
         if vals: deplacement = random.choice(vals)
         
-    return deplacement, tir
+    return deplacement+tir
 
     # IA complètement aléatoire
     # return random.choice("XNSOE")+random.choice("NSEO")
