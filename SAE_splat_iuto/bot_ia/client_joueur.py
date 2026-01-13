@@ -27,6 +27,7 @@ from bot_ia  import const
 from bot_ia  import plateau
 from bot_ia  import case
 from bot_ia  import joueur
+from bot_ia  import innondation
 
 def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
     """ Cette fonction permet de calculer les deux actions du joueur de couleur ma_couleur
@@ -63,14 +64,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         if joueur["couleur"] == ma_couleur:
             notre_IA = joueur
 
-    calque_proche = plateau.distances_objets_joueurs(le_plateau,joueur['position'], plateau.get_nb_lignes(le_plateau))
-    
-    listeJ = []
-    for caseJ in calque_proche.items():
-        for joueur in les_joueurs:
-            if joueur in caseJ[1]['joueurs_presents']:
-                listeJ.append(caseJ)
-    return listeJ.sort(key= lambda x: x[0])
+    calque_proche = innondation.Innondation(le_plateau, notre_IA['position'], 7)
 
                 
 
@@ -111,22 +105,56 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
                 return direction
 
 
-    def distance_vers_cible(cible, notre_IA):
-
+    def a_etoile(cible, notre_IA, plateau):
+        
+        def get_direction(liste,pos):
+            directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
+            liste_finale = []
+            for car in liste:
+                liste_finale.append((pos[0]+directions[car][0],pos[1]+directions[car][1]))
+            return liste_finale
+            
         def heuristique(a,b):
             return abs(a[0]-b[0])+abs(a[1]-b[1])
+            
         depart = joueur.get_pos(notre_IA)
         liste_case_a_explorer = [depart]
-        liste_case_deja_explorer = []
+        liste_case_deja_explorer = dict()
 
         cout_chemin = {depart:0}
 
         while liste_case_a_explorer:
-            actuel = min(liste_case_a_explorer, key=lambda x: g[x] + heuristique(x,cible))
+            actuel = min(liste_case_a_explorer, key=lambda x: cout_chemin[x] + heuristique(x,cible))
 
             if actuel == cible:
-                return liste
+                return liste_case_deja_explorer
 
+            liste_case_a_explorer.remove(actuel)
+
+            for voisin in get_direction(directions_possibles.(plateau,actuel).keys(), actuel):
+                tentative = cout_chemin[actuel] + 1
+                if voisin not in cout_chemin or tentative < cout_chemin[voisin]:
+                    liste_case_deja_explorer[voisin] = actuel
+                    cout_chemin[voisin] = tentative
+                    liste_case_a_explorer.append(voisin)
+        return None
+
+    def premiere_direction(depart, cible, plateau):
+        directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
+        liste_pos = a_etoile(depart, cible, plateau)
+        if liste_pos is None:
+            return random.choice("NSEO")
+
+        noeud = cible
+        while liste_pos[noeud] != depart:
+            noeud = liste_pos[noeud]
+
+        deplacement_x = noeud[0] - depart[0]
+        deplacement_y = noeud[1] - depart[1]
+
+        for dir, (valeur_x, valeur_y) in directions.items():
+            if (deplacement_x, deplacement_y) == (valeur_x, valeur_y):
+                return dir
 
     
 
@@ -139,6 +167,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         deplacement_peinture_zero(notre_IA, Distance_max)
     elif joueur.get_reserve(notre_IA) < 0: # si notre reserve de peinture est negative aller chercher un bideon
         deplacement_peinture_negative(no)
+    dir_tir = direction_tir_ennemi(notre_IA, le_plateau, les_joueurs, carac_jeu)
 
 
     # IA complètement aléatoire
@@ -171,7 +200,8 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
                     if adv != moi and joueur.get_position(adv) == (cible_lig, cible_col):
                         return sens 
         return None
-
+    
+    
 
 
 
