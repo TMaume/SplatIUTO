@@ -29,6 +29,111 @@ from bot_ia  import case
 from bot_ia  import joueur
 from bot_ia  import innondation
 
+def _get_voisin_safe(le_plateau, pos, direction):
+    """Renvoie la couleur du voisin dans la direction donnée, ou None si impossible"""
+    inc = plateau.INC_DIRECTION[direction]
+    pos_voisin = (pos[0] + inc[0], pos[1] + inc[1])
+    if plateau.est_sur_plateau(le_plateau, pos_voisin):
+        c = plateau.get_case(le_plateau, pos_voisin)
+        if not case.est_mur(c):
+            return case.get_couleur(c)
+    return None
+
+def _deplacement_peinture_zero(notre_IA, le_plateau, distance_max):
+    """Cherche la case de notre couleur la plus proche et y va."""
+    ma_couleur = joueur.get_couleur(notre_IA)
+    ma_pos = joueur.get_pos(notre_IA)
+    
+    # Appel optimisé : 1 seul scan depuis notre position
+    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='C', C_cherche=ma_couleur)
+    
+    if resultat:
+        # Trouver la cible la plus proche
+        cle_min = min(resultat.keys(), key=lambda k: k[0])
+        info = resultat[cle_min]
+        # Innondation nous donne maintenant la direction de départ !
+        if 'Direction' in info and info['Direction']:
+            return info['Direction'], 'X'
+            
+    # Fallback : mouvement aléatoire vers une case vide si possible
+    voisins = plateau.directions_possibles(le_plateau, ma_pos)
+    choix_vides = [d for d, c in voisins.items() if c == ' ']
+    if choix_vides: return random.choice(choix_vides), 'X'
+    if voisins: return random.choice(list(voisins.keys())), 'X'
+    return 'X', 'X'
+
+def _deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
+    """Cherche un bidon pour recharger."""
+    ma_pos = joueur.get_pos(notre_IA)
+    
+    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='O', O_cherche=const.BIDON)
+    
+    if resultat:
+        cle_min = min(resultat.keys(), key=lambda k: k[0])
+        info = resultat[cle_min]
+        if 'Direction' in info and info['Direction']:
+            return info['Direction'], 'X'
+
+    voisins = plateau.directions_possibles(le_plateau, ma_pos)
+    choix_safe = [d for d, c in voisins.items() if c == ' ']
+    if choix_safe: return random.choice(choix_safe), 'X'
+    if voisins: return random.choice(list(voisins.keys())), 'X'
+    return 'X', 'X'
+
+def _deplacement_vers_objet(notre_IA, le_plateau, distance_max):
+    """Cherche l'objet le plus proche."""
+    ma_pos = joueur.get_pos(notre_IA)
+    ma_coul = joueur.get_couleur(notre_IA)
+    
+    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='O')
+    
+    if resultat:
+        cle_min = min(resultat.keys(), key=lambda k: k[0])
+        info = resultat[cle_min]
+        
+        if 'Direction' in info and info['Direction']:
+            best_dir = info['Direction']
+            dirTir = 'X'
+            
+            # Logique de tir : si la case où je vais n'est pas à moi, je peins
+            couleur_voisin = _get_voisin_safe(le_plateau, ma_pos, best_dir)
+            if couleur_voisin is not None and couleur_voisin != ma_coul:
+                dirTir = best_dir
+            else:
+                # Sinon tir opportuniste
+                dirTir = max(plateau.INC_DIRECTION, key=lambda d: plateau.nb_joueurs_direction(le_plateau, ma_pos, d, const.PORTEE_PEINTURE))
+                
+            return best_dir, dirTir
+
+    # Fallback
+    voisins = list(plateau.directions_possibles(le_plateau, ma_pos).keys())
+    if voisins: return random.choice(voisins), 'X'
+    return 'X', 'X'
+
+def _deplacement_vers_vide(notre_IA, le_plateau, distance_max):
+    """Cherche une case non peinte."""
+    ma_pos = joueur.get_pos(notre_IA)
+    ma_coul = joueur.get_couleur(notre_IA)
+    
+    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='C', C_cherche=' ')
+    
+    if resultat:
+        cle_min = min(resultat.keys(), key=lambda k: k[0])
+        info = resultat[cle_min]
+        
+        if 'Direction' in info and info['Direction']:
+            best_dir = info['Direction']
+            dirTir = 'X'
+            
+            # Si le chemin est bloqué par une couleur adverse, on tire
+            couleur_voisin = _get_voisin_safe(le_plateau, ma_pos, best_dir)
+            if couleur_voisin is not None and couleur_voisin != ma_coul:
+                dirTir = best_dir
+                
+            return best_dir, dirTir
+            
+    return None
+
 def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
     """ Cette fonction permet de calculer les deux actions du joueur de couleur ma_couleur
         en fonction de l'état du jeu décrit par les paramètres. 
@@ -50,213 +155,35 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
             et la direction de déplacement
     """
     notre_IA = les_joueurs[ma_couleur]
-
-    # Fonctions internes corrigées
-    def deplacement_peinture_zero(notre_IA, le_plateau, distance_max):
-        ma_couleur = joueur.get_couleur(notre_IA) # Le module 'joueur' est bien accessible
-        ma_pos = joueur.get_pos(notre_IA)
-        voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
-        
-        if not voisins_possibles:
-            return random.choice("NSEO"), 'X'
-
-        meilleure_direction = None
-        min_distance_trouvee = distance_max + 1
-        
-        for direction in voisins_possibles:
-            if voisins_possibles[direction] == ma_couleur:
-                return direction, 'X'
-            
-            inc = plateau.INC_DIRECTION[direction]
-            pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
-            
-            # Recherche de la couleur du joueur
-            resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='C', C_cherche=ma_couleur)
-            
-            if resultat:
-                # On cherche la distance minimale parmi les résultats
-                dist_min_scan = min(cle[0] for cle in resultat.keys())
-                if dist_min_scan < min_distance_trouvee:
-                    min_distance_trouvee = dist_min_scan
-                    meilleure_direction = direction
-        
-        if meilleure_direction:
-            return meilleure_direction, 'X'
-        
-        # Fallback
-        choix_vides = [d for d, c in voisins_possibles.items() if c == ' ']
-        if choix_vides:     
-            return random.choice(choix_vides), 'X'  
-        return random.choice(list(voisins_possibles.keys())), 'X'
-
-    def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
-        ma_pos = joueur.get_pos(notre_IA)
-        voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
-        
-        if not voisins_possibles:
-            return random.choice("NSEO"), 'X'
-
-        meilleure_direction = None
-        min_distance_trouvee = distance_max + 1
-
-        for direction in voisins_possibles:
-            inc = plateau.INC_DIRECTION[direction]
-            pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
-            resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='O', O_cherche=const.BIDON)
-            
-            if resultat:
-                dist_min_scan = min(cle[0] for cle in resultat.keys())
-                if dist_min_scan < min_distance_trouvee:
-                    min_distance_trouvee = dist_min_scan
-                    meilleure_direction = direction
-        
-        if meilleure_direction:
-            return meilleure_direction, 'X'
-
-        choix_safe = [d for d, c in voisins_possibles.items() if c == ' ']
-        if choix_safe:     
-            return random.choice(choix_safe), 'X' 
-        return random.choice(list(voisins_possibles.keys())), 'X'
-    
-    def deplacement_vers_objet(notre_IA, le_plateau, distance_max):
-        ma_pos = joueur.get_pos(notre_IA)
-        ma_coul = joueur.get_couleur(notre_IA)
-        dirTir = 'X'
-        voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
-        
-        if not voisins_possibles:
-            return random.choice("NSEO"), 'X'
-
-        meilleure_direction = None
-        min_distance_trouvee = distance_max + 1
-
-        for direction in voisins_possibles:
-            inc = plateau.INC_DIRECTION[direction]
-            pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
-            resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='O')
-            
-            if resultat:
-                # Trouver la clé (dist, pos) qui a la distance minimale
-                cle_min = min(resultat.keys(), key=lambda k: k[0])
-                dist_min_scan = cle_min[0]
-                
-                if dist_min_scan < min_distance_trouvee:
-                    min_distance_trouvee = dist_min_scan
-                    meilleure_direction = direction
-                    
-                    # Logique de tir : on vérifie la case voisine immédiate pour le tir
-                    # (Note: votre logique originale essayait d'accéder à 'couleur' sur un entier)
-                    if voisins_possibles[direction] != ma_coul:
-                        dirTir = direction
-                    else:
-                         # Tirer là où il y a le plus de monde
-                        dirTir = max(plateau.INC_DIRECTION, key=lambda d: plateau.nb_joueurs_direction(le_plateau, ma_pos, d, const.PORTEE_PEINTURE))
-
-        if meilleure_direction:
-            return meilleure_direction, dirTir
-        return random.choice(list(voisins_possibles.keys())), 'X'
-        
-    def deplacement_vers_vide(notre_IA, le_plateau, distance_max):
-        """
-        utilise Innondation pour trouver l'objet le plus proche
-        et renvoie la direction pour s'en rapprocher.   
-        """
-        ma_pos = joueur.get_pos(notre_IA)
-        dirTir = 'X'
-        
-        voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
-        
-        if not voisins_possibles:
-            return random.choice("NSEO"), 'X'
-
-        meilleure_direction = None
-        min_distance_trouvee = distance_max + 1
-
-        for direction in voisins_possibles:
-
-            inc = plateau.INC_DIRECTION[direction]
-            pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
-
-            resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='C', C_cherche=' ')
-            
-            if resultat:
-
-                dist_min_scan = min(cle[0] for cle in resultat.keys())
-                
-                if dist_min_scan < min_distance_trouvee:
-                    min_distance_trouvee = dist_min_scan
-                    meilleure_direction = direction
-                    if dist_min_scan['couleur'] != ma_couleur:
-                        dirTir = direction
-
-        if meilleure_direction:
-            return meilleure_direction, dirTir
-        
-        #------- Tir sur ennemi avec const.PORTEE_PEINTURES -------#
-    def direction_tir_ennemi(notre_IA, le_plateau, les_joueurs, carac_jeu):
-        return max(plateau.INC_DIRECTION, 
-                   key=lambda dir: plateau.nb_joueurs_direction(le_plateau, 
-                                                                notre_IA['position'],
-                                                                dir, 
-                                                                const.PORTEE_PEINTURE))
-
-        #------- Tir sur mur avec const.PISTOLET pour peindre le mur -------#
-    def tirer_sur_mur(notre_IA, le_plateau, carac_jeu):
-        if joueur.get_objet(notre_IA) == const.PISTOLET:
-            portee = 5
-
-        ma_lig, ma_col = joueur.get_pos(notre_IA) 
-        directions = plateau.INC_DIRECTION 
-
-        for sens, (d_lig, d_col) in directions.items():
-            if sens == 'X': continue 
-
-            for i in range(1, portee + 1):
-                cible = (ma_lig + d_lig * i, ma_col + d_col * i)
-                if plateau.est_sur_plateau(le_plateau, cible): 
-                    la_case = plateau.get_case(le_plateau, cible) 
-
-                if case.est_mur(la_case): 
-                    return sens 
-                    
-        return None
-    
-    def attaquer_bouclier(notre_IA, le_plateau, les_joueurs):
-
-        ma_pos = joueur.get_pos(notre_IA)
-        ma_couleur = joueur.get_couleur(notre_IA)
-        portee = const.PORTEE_PEINTURE 
-        direction = plateau.INC_DIRECTION
-
-        ennemis_proches = innondation.Innondation(le_plateau, ma_pos, portee, recherche='J')
-
-        
-        return None
-
     deplacement = 'X'
     tir = 'X'
 
+    reserve = joueur.get_reserve(notre_IA)
+    objet_tenu = joueur.get_objet(notre_IA)
+
     # Choix de l'action
-    if joueur.get_reserve(notre_IA) == 0: 
-        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, 5)
-    elif joueur.get_reserve(notre_IA) < 0: 
-        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, 5)
-    elif joueur.get_objet(notre_IA) == 0:  
-        result = deplacement_vers_objet(notre_IA, le_plateau, 5)
-        if result: # Sécurité si la fonction renvoie None
+    if reserve == 0: 
+        deplacement, tir = _deplacement_peinture_zero(notre_IA, le_plateau, 5)
+    elif reserve < 0: 
+        deplacement, tir = _deplacement_peinture_negative(notre_IA, le_plateau, 5)
+    elif objet_tenu == 0:  
+        result = _deplacement_vers_objet(notre_IA, le_plateau, 5)
+        if result: 
              deplacement, tir = result
         else:
-             # Comportement par défaut si pas d'objet trouvé
-             vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
-             if vals: deplacement = random.choice(vals)
+             # Si pas d'objet, on cherche du vide
+             result_vide = _deplacement_vers_vide(notre_IA, le_plateau, 5)
+             if result_vide:
+                 deplacement, tir = result_vide
+             else:
+                 vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
+                 if vals: deplacement = random.choice(vals)
     else:
-        # Cas où on a de la réserve et un objet (non géré dans votre code original)
-        # On ajoute un comportement simple : bouger au hasard
+        # On a un objet et de la réserve
         vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
         if vals: deplacement = random.choice(vals)
         
     return deplacement, tir
-
 
     # IA complètement aléatoire
     # return random.choice("XNSOE")+random.choice("NSEO")

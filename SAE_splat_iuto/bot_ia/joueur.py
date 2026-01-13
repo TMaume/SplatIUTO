@@ -50,8 +50,7 @@ def joueur_from_str(description):
     Returns:
         dict: le joueur ayant les caractéristiques décrites dans la chaine.
     """
-    
-    print(description)
+
     description_liste = description.split(";")
     dico = {
         'couleur' : description_liste[0], 
@@ -63,7 +62,6 @@ def joueur_from_str(description):
         'position' : (int(description_liste[6]), int(description_liste[7])), 
         'nom': description_liste[8]
         }
-    print(dico)
     return dico
     
 
