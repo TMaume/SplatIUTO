@@ -47,7 +47,6 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, valeur_cherche=No
                 if recherche == 'O' or recherche is None:
                     objet = case.get_objet(la_case)
                     if objet != const.AUCUN:
-                        # Filtre valeur si demandé
                         if valeur_cherche is None or objet == valeur_cherche:
                             infos_case['Objet'] = objet
                             if recherche == 'O': rechercheFound = True

@@ -50,9 +50,9 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
             et la direction de déplacement
     """
 
-    # priorité 0 : si notre peinture est a 0 aller marcher sur notre peinture  (peinture_zero())
-    # priorité 1 : si notre peinture est negative aller chercher un bidon sans prendre en compte les autres priorités mise a part la 1 et la 2
-    # priorité 2 : si un joueur adverse est à portée de tir, le viser
+    #### priorité 0 : si notre peinture est a 0 aller marcher sur notre peinture  (peinture_zero())
+    #### priorité 1 : si notre peinture est negative aller chercher un bidon sans prendre en compte les autres priorités mise a part la 1 et la 2
+    #### priorité 2 : si un joueur adverse est à portée de tir, le viser
     # priorité 3 : aller chercher un bonus si on en a pas
     # priorité 4 : se déplacer sur une case non peinte ou de notre couleur
     # priorité 5 : si l'on a un bouclier actif aller en direction des adversaires pour les toucher
@@ -110,60 +110,95 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         return random.choice(list(voisins_possibles.keys()))
 
 
-    def deplacement_peinture_negative(notre_IA):
-        ...
-    
-
-    def a_etoile(cible, notre_IA, plateau):
+    def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
+        ma_couleur = joueur.get_couleur(notre_IA)
+        ma_pos = joueur.get_pos(notre_IA)
         
-        def get_direction(liste,pos):
-            directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
-            liste_finale = []
-            for car in liste:
-                liste_finale.append((pos[0]+directions[car][0],pos[1]+directions[car][1]))
-            return liste_finale
-            
-        def heuristique(a,b):
-            return abs(a[0]-b[0])+abs(a[1]-b[1])
-            
-        depart = joueur.get_pos(notre_IA)
-        liste_case_a_explorer = [depart]
-        liste_case_deja_explorer = dict()
-
-        cout_chemin = {depart:0}
-
-        while liste_case_a_explorer:
-            actuel = min(liste_case_a_explorer, key=lambda x: cout_chemin[x] + heuristique(x,cible))
-
-            if actuel == cible:
-                return liste_case_deja_explorer
-
-            liste_case_a_explorer.remove(actuel)
-
-            for voisin in get_direction(plateau.directions_possibles(plateau,actuel).keys(), actuel):
-                tentative = cout_chemin[actuel] + 1
-                if voisin not in cout_chemin or tentative < cout_chemin[voisin]:
-                    liste_case_deja_explorer[voisin] = actuel
-                    cout_chemin[voisin] = tentative
-                    liste_case_a_explorer.append(voisin)
-        return None
-
-    def premiere_direction(depart, cible, plateau):
-        directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
-        liste_pos = a_etoile(depart, cible, plateau)
-        if liste_pos is None:
+        voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
+        
+        if not voisins_possibles:
             return random.choice("NSEO")
 
-        noeud = cible
-        while liste_pos[noeud] != depart:
-            noeud = liste_pos[noeud]
+        meilleure_direction = None
+        min_distance_trouvee = distance_max + 1
 
-        deplacement_x = noeud[0] - depart[0]
-        deplacement_y = noeud[1] - depart[1]
+        for direction in voisins_possibles:
 
-        for dir, (valeur_x, valeur_y) in directions.items():
-            if (deplacement_x, deplacement_y) == (valeur_x, valeur_y):
-                return dir
+            inc = plateau.INC_DIRECTION[direction]
+            pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
+
+            resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='O', valeur_cherche=const.BIDON)
+            
+            if resultat:
+
+                dist_min_scan = min(cle[0] for cle in resultat.keys())
+                
+                if dist_min_scan < min_distance_trouvee:
+                    min_distance_trouvee = dist_min_scan
+                    meilleure_direction = direction
+        
+
+        if meilleure_direction:
+            return meilleure_direction
+
+        choix_safe = [directionCase for directionCase, couleurCase in voisins_possibles.items() if couleurCase == ' ']
+        
+        if choix_safe:     
+            return random.choice(choix_safe)   
+            
+        return random.choice(list(voisins_possibles.keys()))
+    
+
+    # def a_etoile(depart, cible, le_plateau):
+        
+    #     def get_direction(liste,pos):
+    #         directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
+    #         liste_finale = []
+    #         for car in liste:
+    #             liste_finale.append((pos[0]+directions[car][0],pos[1]+directions[car][1]))
+    #         return liste_finale
+            
+    #     def heuristique(a,b):
+    #         return abs(a[0]-b[0])+abs(a[1]-b[1])
+            
+    #     liste_case_a_explorer = [depart]
+    #     liste_case_deja_explorer = dict()
+
+    #     cout_chemin = {depart:0}
+
+    #     while liste_case_a_explorer:
+    #         actuel = min(liste_case_a_explorer, key=lambda x: cout_chemin[x] + heuristique(x,cible))
+
+    #         if actuel == cible:
+    #             return liste_case_deja_explorer
+
+    #         liste_case_a_explorer.remove(actuel)
+
+    #         for voisin in get_direction(plateau.directions_possibles(le_plateau,actuel).keys(), actuel):
+    #             tentative = cout_chemin[actuel] + 1
+    #             if voisin not in cout_chemin or tentative < cout_chemin[voisin]:
+    #                 liste_case_deja_explorer[voisin] = actuel
+    #                 cout_chemin[voisin] = tentative
+    #                 liste_case_a_explorer.append(voisin)
+    #     return None
+
+    # def premiere_direction(notre_IA, cible, plateau): # fonction pour se deplacer vers un point donné
+    #     depart = joueur.get_pos(notre_IA)
+    #     directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
+    #     liste_pos = a_etoile(depart, cible, plateau)
+    #     if liste_pos is None:
+    #         return random.choice("NSEO")
+
+    #     noeud = cible
+    #     while liste_pos[noeud] != depart:
+    #         noeud = liste_pos[noeud]
+
+    #     deplacement_x = noeud[0] - depart[0]
+    #     deplacement_y = noeud[1] - depart[1]
+
+    #     for dir, (valeur_x, valeur_y) in directions.items():
+    #         if (deplacement_x, deplacement_y) == (valeur_x, valeur_y):
+    #             return dir
 
     
 
@@ -182,35 +217,39 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
     # IA complètement aléatoire
     # return random.choice("XNSOE")+random.choice("NSEO")
 
-    def direction_tir_ennemi(moi, le_plateau, les_joueurs, carac_jeu):
-        
-        portee = const.PORTEE_PEINTURE 
+def direction_tir_ennemi(moi, le_plateau, les_joueurs, carac_jeu):
 
-        if joueur.get_objet(moi) == const.PISTOLET:
-            portee = 5 
+    portee = const.PORTEE_PEINTURE # 
+    if joueur.get_objet(moi) == const.PISTOLET: # 
+        portee = 5 
+    ma_lig, ma_col = joueur.get_pos(moi) # 
 
-        ma_lig, ma_col = joueur.get_position(moi)
-        
-        directions = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
+    positions_ennemis = set()
+    for adv in les_joueurs.values():
+        if joueur.get_couleur(adv) != joueur.get_couleur(moi):
+            positions_ennemis.add(joueur.get_pos(adv))
+    directions = plateau.INC_DIRECTION 
 
-        for sens, (d_lig, d_col) in directions.items():
+    for sens, (d_lig, d_col) in directions.items():
+        if sens == 'X': continue 
+
+        for i in range(1, portee + 1):
+            cible = (ma_lig + d_lig * i, ma_col + d_col * i)
+
+            if not plateau.est_sur_plateau(le_plateau, cible):
+                break 
             
-            for i in range(1, portee + 1): 
-                cible_lig = ma_lig + (d_lig * i)
-                cible_col = ma_col + (d_col * i)
+            la_case = plateau.get_case(le_plateau, cible) 
 
-                if not plateau.est_sur_plateau(le_plateau, (cible_lig, cible_col)):
-                    break 
+            if case.est_mur(la_case): 
+
+                break 
+            if cible in positions_ennemis:
+                return sens 
                 
-                if plateau.get_type_case(le_plateau, (cible_lig, cible_col)) == const.MUR:
-                    break 
+    return None
 
-                for adv in les_joueurs:
-                    if adv != moi and joueur.get_position(adv) == (cible_lig, cible_col):
-                        return sens 
-        return None
-    
-    
+
 
 
 
