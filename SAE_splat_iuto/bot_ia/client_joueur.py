@@ -183,7 +183,7 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
         vals = list(plateau.directions_possibles(le_plateau, joueur.get_pos(notre_IA)).keys())
         if vals: deplacement = random.choice(vals)
         
-    return deplacement+tir
+    return tir+deplacement
 
     # IA complètement aléatoire
     # return random.choice("XNSOE")+random.choice("NSEO")
