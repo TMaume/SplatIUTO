@@ -55,10 +55,10 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
     #### priorité 2 : si un joueur adverse est à portée de tir, le viser
     #### priorité 3 : aller chercher un bonus si on en a pas
     #### priorité 4 : se déplacer sur une case non peinte ou de notre couleur
-    # priorité 5 : si l'on a un bouclier actif aller en direction des adversaires pour les toucher
-    # priorité 6 : rester a distance des autres joueurs
+    #### priorité 5 : si l'on a un bouclier actif aller en direction des adversaires pour les toucher
+    #--- priorité 6 : rester a distance des autres joueurs
     #### priorité 7 : si on a un pistolet tirer sur les murs
-    # priorité 8 : peindre dans une zone avec le moins de peinture enemie et moins de notre peinture
+    #--- priorité 8 : peindre dans une zone avec le moins de peinture enemie et moins de notre peinture
     
     
 
@@ -76,7 +76,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
         
         if not voisins_possibles:
-            return random.choice("NSEO")
+            return random.choice("NSEO"), 'X'
 
         meilleure_direction = None
         min_distance_trouvee = distance_max + 1
@@ -84,7 +84,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
 
         for direction in voisins_possibles:
             if voisins_possibles[direction] == ma_couleur:
-                return direction
+                return direction, 'X'
             
             inc = plateau.INC_DIRECTION[direction]
             pos_voisin = (ma_pos[0] + inc[0], ma_pos[1] + inc[1])
@@ -100,13 +100,13 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         
 
         if meilleure_direction:
-            return meilleure_direction
+            return meilleure_direction, 'X'
         
         choix_vides = [directionCase for directionCase, couleurCase in voisins_possibles.items() if couleurCase == ' ']
         if choix_vides:     
-            return random.choice(choix_vides)   
+            return random.choice(choix_vides), 'X'  
             
-        return random.choice(list(voisins_possibles.keys()))
+        return random.choice(list(voisins_possibles.keys())), 'X'
 
         #------- Peintures négatives -------#
     def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
@@ -115,7 +115,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
         
         if not voisins_possibles:
-            return random.choice("NSEO")
+            return random.choice("NSEO"), 'X'
 
         meilleure_direction = None
         min_distance_trouvee = distance_max + 1
@@ -137,14 +137,14 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         
 
         if meilleure_direction:
-            return meilleure_direction
+            return meilleure_direction, 'X'
 
         choix_safe = [directionCase for directionCase, couleurCase in voisins_possibles.items() if couleurCase == ' ']
         
         if choix_safe:     
-            return random.choice(choix_safe)   
+            return random.choice(choix_safe) ,'X' 
             
-        return random.choice(list(voisins_possibles.keys()))
+        return random.choice(list(voisins_possibles.keys())), 'X'
     
         #------- Déplacement vers objet non défini -------#
     def deplacement_vers_objet(notre_IA, le_plateau, distance_max):
@@ -158,7 +158,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
         
         if not voisins_possibles:
-            return random.choice("NSEO")
+            return random.choice("NSEO"), 'X'
 
         meilleure_direction = None
         min_distance_trouvee = distance_max + 1
@@ -179,6 +179,8 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
                     meilleure_direction = direction
                     if dist_min_scan['couleur'] != ma_couleur:
                         dirTir = direction
+                    else:
+                        dirTir = max(plateau.INC_DIRECTION, key=lambda dir: plateau.nb_joueurs_direction(le_plateau, notre_IA['position'],dir, const.PORTEE_PEINTURE))
 
         if meilleure_direction:
             return meilleure_direction, dirTir
@@ -194,7 +196,7 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
         voisins_possibles = plateau.directions_possibles(le_plateau, ma_pos)
         
         if not voisins_possibles:
-            return random.choice("NSEO")
+            return random.choice("NSEO"), 'X'
 
         meilleure_direction = None
         min_distance_trouvee = distance_max + 1
@@ -268,19 +270,15 @@ def mon_IA(ma_couleur,carac_jeu, le_plateau, les_joueurs):
     #deplacement
     
     if joueur.get_reserve(notre_IA) == 0: # aller se recharger quand on a plus de peinture
-        deplacement = deplacement_peinture_zero(notre_IA, plateau, 7)
+        deplacement,tir = deplacement_peinture_zero(notre_IA, plateau, 5)
     elif joueur.get_reserve(notre_IA) < 0: # si notre reserve de peinture est negative aller chercher un bideon
-        deplacement = deplacement_peinture_negative(notre_IA)
+        deplacement,tir = deplacement_peinture_negative(notre_IA, plateau, 5)
     elif joueur.get_objet(notre_IA) == 0: # si on a pas d'objet 
-        deplacement = deplacement_vers_objet(notre_IA, plateau, 7)
-
-
+        deplacement,tir = deplacement_vers_objet(notre_IA, plateau, 5)
     
-    ennemie_a_proximite = 0
-    for dir in ["N", ""]
-    dir_tir = direction_tir_ennemi(notre_IA, le_plateau, les_joueurs, carac_jeu)
-    if joueur.get_objet(notre_IA) == const.BOUCLIER and joueur.get_reserve() > 5:
-        attaquer_bouclier(notre_IA, plateau, les_joueurs)
+    return deplacement, tir
+    # if joueur.get_objet(notre_IA) == const.BOUCLIER and joueur.get_reserve() > 5:
+    #     attaquer_bouclier(notre_IA, plateau, les_joueurs)
 
 
     # IA complètement aléatoire

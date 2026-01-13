@@ -41,7 +41,7 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O
                     if joueurs_case:
 
                         infos_case['Joueur'] = joueurs_case
-                        if 'J' in recherche: rechercheFound = True
+                        if 'J' == recherche: rechercheFound = True
 
                 
                 if 'O' in recherche or recherche is None:
@@ -49,7 +49,7 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O
                     if objet != const.AUCUN:
                         if O_cherche is None or objet == O_cherche:
                             infos_case['Objet'] = objet
-                            if 'O' in recherche: rechercheFound = True
+                            if 'O' == recherche: rechercheFound = True
 
               
                 if 'C' in recherche or recherche is None:
@@ -57,7 +57,7 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O
                     if coul != ' ' or ' ' in recherche:
                         if C_cherche is None or coul == C_cherche:
                             infos_case['Couleur'] = coul
-                            if 'C' in recherche: rechercheFound = True
+                            if 'C' == recherche: rechercheFound = True
 
                 if infos_case:
 
