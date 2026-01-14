@@ -295,8 +295,8 @@ def deplacement_vers_objet(notre_IA, le_plateau, distance_max):
     return None
 
 
-def deplacement_vers_vide_custom(notre_IA, le_plateau, distance_max):
-    """Se déplace vers une zone vide puis, à défaut, vers notre couleur.
+def deplacement_vers_autre(notre_IA, le_plateau, distance_max):
+    """Se déplace pour continuer à peindre: vide -> ennemi -> notre couleur.
 
     Args:
         notre_IA (dict): joueur.
@@ -316,6 +316,9 @@ def deplacement_vers_vide_custom(notre_IA, le_plateau, distance_max):
         return RIEN, RIEN
 
     direction = direction_vers_couleur(le_plateau, ma_pos, distance_max, VIDE)
+    if not direction:
+        res_ennemi = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='A', C_cherche=ma_couleur)
+        direction = innondation_direction(res_ennemi)
     if not direction:
         direction = direction_vers_couleur(le_plateau, ma_pos, distance_max, ma_couleur)
 
@@ -446,10 +449,10 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
             if res_obj:
                 deplacement, tir = res_obj
             else:
-                deplacement, tir = deplacement_vers_vide_custom(notre_IA, le_plateau, 28)
+                deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 28)
         
         else:
-             deplacement, tir = deplacement_vers_vide_custom(notre_IA, le_plateau, 28)
+             deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 28)
 
         if tir == RIEN:
             tir_ennemi = direction_tir_ennemi(notre_IA, le_plateau)
