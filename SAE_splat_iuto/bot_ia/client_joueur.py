@@ -33,6 +33,11 @@ RIEN = 'X'
 
 DIRS_ORDRE = ("N", "E", "S", "O")
 
+
+def distance_max_plateau(le_plateau):
+    """Borne supérieure simple pour couvrir tout le plateau en inondation."""
+    return plateau.get_nb_lignes(le_plateau) * plateau.get_nb_colonnes(le_plateau)
+
 def get_voisin_safe(le_plateau, pos, direction):
     """Récupère la couleur de la case voisine, si elle est accessible.
 
@@ -258,7 +263,8 @@ def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
         tuple[str, str]: (direction_deplacement, direction_tir).
     """
     ma_pos = joueur.get_pos(notre_IA)
-    direction = direction_vers_objet(le_plateau, ma_pos, distance_max, const.BIDON)
+
+    direction = direction_vers_objet(le_plateau, ma_pos, distance_max_plateau(le_plateau), const.BIDON)
     if direction:
         return direction, RIEN
     
@@ -422,6 +428,15 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
 
     ma_pos = joueur.get_pos(notre_IA)
     voisins = plateau.directions_possibles(le_plateau, ma_pos)
+
+    # Stabilisation recharge: après être revenu sur notre couleur avec peu de réserve,
+    # on se décale sur une autre case alliée adjacente pour éviter l'oscillation.
+    if case_couleur(le_plateau, ma_pos) == ma_couleur and reserve >= 0:
+        seuil_recharge = max(2, int(carac_jeu.get("bonus_recharge", const.BONUS_RECHARGE)) * 2)
+        if reserve < seuil_recharge:
+            d_allie = a_voisin_de_couleur(voisins, ma_couleur)
+            if d_allie:
+                return RIEN + d_allie
 
     if case_couleur(le_plateau, ma_pos) != ma_couleur:
         direction = direction_vers_couleur(le_plateau, ma_pos, 28, ma_couleur)
