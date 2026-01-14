@@ -127,32 +127,16 @@ def _deplacement_vers_vide_custom(notre_IA, le_plateau, distance_max):
         # Bloqué ? On tente un mouvement au hasard
         return random.choice("NSEO"), RIEN
 
-    meilleure_direction = None
-    min_distance_trouvee = distance_max + 1
-
-    # On simule un départ depuis chaque voisin pour voir lequel est le plus proche du vide
-    for direction in voisins_possibles:
+    # Une seule inondation depuis notre position (évite 4 BFS par tour)
+    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='C', C_cherche=VIDE)
+    direction = _innondation_direction(resultat)
+    if direction:
         d_lig, d_col = plateau.INC_DIRECTION[direction]
-        pos_voisin = (ma_pos[0] + d_lig, ma_pos[1] + d_col)
-
-        # On lance l'inondation depuis le voisin
-        resultat = innondation.Innondation(le_plateau, pos_voisin, distance_max - 1, recherche='C', C_cherche=' ')
-        
-        if resultat:
-            # On cherche la distance minimale dans les résultats
-            dist_min_scan = min(cle[0] for cle in resultat.keys())
-            
-            if dist_min_scan < min_distance_trouvee:
-                min_distance_trouvee = dist_min_scan
-                meilleure_direction = direction
-                
-                # Correction logique tir : si la case immédiate n'est pas à nous, on la peint
-                couleur_case_visee = case.get_couleur(plateau.get_case(le_plateau, pos_voisin))
-                if couleur_case_visee != ma_couleur:
-                    dirTir = direction
-
-    if meilleure_direction:
-        return meilleure_direction, dirTir
+        pos_suivante = (ma_pos[0] + d_lig, ma_pos[1] + d_col)
+        couleur_case_visee = case.get_couleur(plateau.get_case(le_plateau, pos_suivante))
+        if couleur_case_visee != ma_couleur:
+            dirTir = direction
+        return direction, dirTir
     
     # Si rien trouvé, on prend une direction possible au hasard
     return _random_direction_from_voisins(voisins_possibles), RIEN
