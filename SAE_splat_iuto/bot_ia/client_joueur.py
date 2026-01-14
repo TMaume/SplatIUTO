@@ -237,7 +237,8 @@ def deplacement_peinture_zero(notre_IA, le_plateau, distance_max, reserve):
         tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
         return direction, tir
 
-    direction = direction_vers_objet(le_plateau, ma_pos, distance_max, const.BIDON)
+    # Priorité au bidon même s'il est loin (souvent la raison du "ne le voit pas").
+    direction = direction_vers_objet(le_plateau, ma_pos, distance_max_plateau(le_plateau), const.BIDON)
     if direction:
         tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
         return direction, tir
