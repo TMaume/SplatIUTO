@@ -191,7 +191,7 @@ def meilleure_direction_locale(voisins, ma_couleur):
     return random_direction_from_voisins(voisins)
 
 
-def tir_local_sur_case_non_ami(voisins, ma_couleur):
+def tir_sur_case_non_ami(voisins, ma_couleur):
     """Choisit une direction de tir locale sur une case non alliée.
 
     Args:
@@ -421,19 +421,19 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
     voisins = plateau.directions_possibles(le_plateau, ma_pos)
 
     if case_couleur(le_plateau, ma_pos) != ma_couleur:
-        direction = direction_vers_couleur(le_plateau, ma_pos, 25, ma_couleur)
+        direction = direction_vers_couleur(le_plateau, ma_pos, 28, ma_couleur)
         if direction:
             deplacement = direction
             tir = direction if reserve > 0 else RIEN
         else:
             deplacement = meilleure_direction_locale(voisins, ma_couleur)
-            tir = tir_local_sur_case_non_ami(voisins, ma_couleur) if reserve > 0 else RIEN
+            tir = tir_sur_case_non_ami(voisins, ma_couleur) if reserve > 0 else RIEN
 
     elif 0 <= reserve < 2:
-        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, 35, reserve)
+        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, 28, reserve)
             
     elif reserve < 0:
-        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, 25)
+        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, 28)
             
     else:
         tir_mur = tirer_sur_mur(notre_IA, le_plateau)
@@ -442,7 +442,7 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
             deplacement = meilleure_direction_locale(voisins, ma_couleur)
         
         elif objet_tenu == 0:
-            res_obj = deplacement_vers_objet(notre_IA, le_plateau, 28)
+            res_obj = deplacement_vers_objet(notre_IA, le_plateau, 5)
             if res_obj:
                 deplacement, tir = res_obj
             else:
@@ -456,7 +456,7 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
             if tir_ennemi != RIEN:
                 tir = tir_ennemi
             else:
-                tir = tir_local_sur_case_non_ami(voisins, ma_couleur)
+                tir = tir_sur_case_non_ami(voisins, ma_couleur)
 
     return tir + deplacement
 
