@@ -64,7 +64,11 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O
                     if C_cherche is None or coul == C_cherche:
                         infos_case['Couleur'] = coul
                         if 'C' == recherche: rechercheFound = True
-
+            if 'A' == recherche:
+                coul = case.get_couleur(la_case)
+                if coul != C_cherche:
+                    infos_case['Couleur'] = coul
+                    rechercheFound = True
             # Si on a trouvé quelque chose d'intéressant
             if infos_case:
                 if distance > 0: 

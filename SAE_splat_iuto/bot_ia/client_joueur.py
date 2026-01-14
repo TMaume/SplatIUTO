@@ -215,8 +215,24 @@ def _tirer_sur_mur(notre_IA, le_plateau):
 # -------------------------------------------------------------------------
 
 def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
-    """
-    Logique principale de l'IA
+    """ Cette fonction permet de calculer les deux actions du joueur de couleur ma_couleur
+        en fonction de l'état du jeu décrit par les paramètres. 
+        Le premier caractère est parmi XSNOE X indique pas de peinture et les autres
+        caractères indique la direction où peindre (Nord, Sud, Est ou Ouest)
+        Le deuxième caractère est parmi SNOE indiquant la direction où se déplacer.
+
+    Args:
+        ma_couleur (str): un caractère en majuscule indiquant la couleur du joueur
+        carac_jeu (dict)): un dictionnaire donnant les valeurs des caractéristiques du jeu:
+             duree_actuelle, duree_totale, reserve_initiale, duree_obj, penalite, bonus_touche,
+             bonus_recharge, bonus_objet et distance_max,
+        le_plateau (dict): l'état du plateau actuel sous la forme décrite dans plateau.py
+        les_joueurs (list[joueur]): la liste des joueurs avec leurs caractéristiques utilisant l'API
+         joueur.py
+
+    Returns:
+        str: une chaine de deux caractères en majuscules indiquant la direction de peinture
+            et la direction de déplacement
     """
     notre_IA = les_joueurs[ma_couleur]
     deplacement = 'X'
@@ -226,7 +242,7 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
     objet_tenu = joueur.get_objet(notre_IA)
 
     # 1. URGENCE : Plus de peinture ?
-    if reserve == 0: 
+    if 0 <= reserve <= 5: 
         res = _deplacement_peinture_zero(notre_IA, le_plateau, 25)
         if res: deplacement, tir = res
             
