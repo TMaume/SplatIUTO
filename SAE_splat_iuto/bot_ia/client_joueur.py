@@ -19,6 +19,7 @@ Module contenant l'implémentation de l'IA et le programme principal du joueur
 """
 
 import argparse
+import random
 
 from bot_ia import case
 from bot_ia import client
@@ -30,24 +31,30 @@ from bot_ia import plateau
 
 VIDE = ' '
 RIEN = 'X'
-
 DIRS_ORDRE = ("N", "E", "S", "O")
 
 
 def distance_max_plateau(le_plateau):
-    """Borne supérieure simple pour couvrir tout le plateau en inondation."""
+    """Calcule une borne supérieure pour la distance de recherche sur le plateau.
+    
+    Args:
+        le_plateau (dict): Le plateau de jeu.
+        
+    Returns:
+        int: Le nombre total de cases du plateau.
+    """
     return plateau.get_nb_lignes(le_plateau) * plateau.get_nb_colonnes(le_plateau)
 
 def get_voisin_safe(le_plateau, pos, direction):
-    """Récupère la couleur de la case voisine, si elle est accessible.
+    """Récupère la couleur de la case voisine dans une direction donnée, si elle est accessible.
 
     Args:
-        le_plateau (dict): plateau de jeu.
-        pos (tuple[int, int]): position (ligne, colonne).
-        direction (str): direction parmi 'N', 'E', 'S', 'O'.
+        le_plateau (dict): Le plateau de jeu.
+        pos (tuple[int, int]): La position actuelle (ligne, colonne).
+        direction (str): La direction ('N', 'E', 'S', 'O').
 
     Returns:
-        str | None: couleur de la case voisine, ou None si hors plateau / mur.
+        str | None: La couleur de la case voisine si elle existe et n'est pas un mur, sinon None.
     """
     d_lig, d_col = plateau.INC_DIRECTION[direction]
     pos_voisin = (pos[0] + d_lig, pos[1] + d_col)
@@ -59,13 +66,13 @@ def get_voisin_safe(le_plateau, pos, direction):
 
 
 def innondation_direction(resultat):
-    """Extrait la première direction depuis un résultat d'inondation.
+    """Extrait la première direction à prendre depuis le résultat d'une inondation.
 
     Args:
-        resultat (dict): dictionnaire retourné par innondation.Innondation.
+        resultat (dict): Le dictionnaire retourné par innondation.Innondation.
 
     Returns:
-        str | None: direction ('N'/'E'/'S'/'O') vers la cible la plus proche, sinon None.
+        str | None: La direction vers la cible la plus proche, ou None si aucun résultat.
     """
     if not resultat:
         return None
@@ -75,13 +82,13 @@ def innondation_direction(resultat):
 
 
 def random_direction_from_voisins(voisins):
-    """Choisit une direction déterministe parmi les voisins disponibles.
+    """Choisit une direction disponible parmi les voisins de manière déterministe (ordre fixe).
 
     Args:
-        voisins (dict): dict {direction: couleur_case_arrivee}.
+        voisins (dict): Dictionnaire {direction: couleur_case}.
 
     Returns:
-        str: direction choisie, ou 'X' si aucune direction.
+        str: La direction choisie, ou 'X' si aucune direction n'est possible.
     """
     if not voisins:
         return RIEN
@@ -95,24 +102,24 @@ def case_couleur(le_plateau, pos):
     """Retourne la couleur de la case à une position donnée.
 
     Args:
-        le_plateau (dict): plateau de jeu.
-        pos (tuple[int, int]): position (ligne, colonne).
+        le_plateau (dict): Le plateau de jeu.
+        pos (tuple[int, int]): La position (ligne, colonne).
 
     Returns:
-        str: couleur de la case.
+        str: La couleur de la case (ex: 'A', 'B', ' ').
     """
     return case.get_couleur(plateau.get_case(le_plateau, pos))
 
 
 def a_voisin_de_couleur(voisins, couleur):
-    """Indique s'il existe un voisin immédiat d'une couleur donnée.
+    """Vérifie si un des voisins immédiats est de la couleur spécifiée.
 
     Args:
-        voisins (dict): dict {direction: couleur_case_arrivee}.
-        couleur (str): couleur recherchée.
+        voisins (dict): Dictionnaire des voisins accessibles {direction: couleur}.
+        couleur (str): La couleur recherchée.
 
     Returns:
-        str | None: direction vers un voisin de cette couleur, sinon None.
+        str | None: La direction du premier voisin trouvé de cette couleur, ou None.
     """
     for d in DIRS_ORDRE:
         if voisins.get(d) == couleur:
@@ -121,69 +128,80 @@ def a_voisin_de_couleur(voisins, couleur):
 
 
 def direction_vers_couleur(le_plateau, pos, distance_max, couleur):
-    """Cherche une direction menant à une couleur cible dans un rayon.
+    """Cherche le chemin le plus court vers une case d'une certaine couleur.
 
     Args:
-        le_plateau (dict): plateau de jeu.
-        pos (tuple[int, int]): position de départ.
-        distance_max (int): portée de recherche.
-        couleur (str): couleur cible (peut être ' ').
+        le_plateau (dict): Le plateau de jeu.
+        pos (tuple[int, int]): La position de départ.
+        distance_max (int): La distance maximale de recherche.
+        couleur (str): La couleur cible.
 
     Returns:
-        str | None: direction initiale, sinon None.
+        str | None: La direction à prendre, ou None si introuvable.
     """
-    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur)
+    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur, arret_premier=True)
     return innondation_direction(res)
 
 
 def direction_vers_objet(le_plateau, pos, distance_max, objet):
-    """Cherche une direction menant à un objet cible dans un rayon.
+    """Cherche le chemin le plus court vers un type d'objet donné.
 
     Args:
-        le_plateau (dict): plateau de jeu.
-        pos (tuple[int, int]): position de départ.
-        distance_max (int): portée de recherche.
-        objet (int): identifiant de l'objet cible.
+        le_plateau (dict): Le plateau de jeu.
+        pos (tuple[int, int]): La position de départ.
+        distance_max (int): La distance maximale de recherche.
+        objet (int): L'identifiant de l'objet (ex: const.BIDON).
 
     Returns:
-        str | None: direction initiale, sinon None.
+        str | None: La direction à prendre, ou None si introuvable.
     """
-    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='O', O_cherche=objet)
+    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='O', O_cherche=objet, arret_premier=True)
     return innondation_direction(res)
 
 
-def direction_vers_zone_deux_cases(le_plateau, pos, distance_max, couleur):
-    """Cherche une zone de 2 cases adjacentes de la même couleur.
+def direction_vers_securite_absolue(le_plateau, pos, distance_max, couleur):
+    """Cherche une zone de recharge sûre (cluster) de manière exhaustive.
+    
+    Cette fonction scanne toutes les cases de notre couleur et sélectionne la plus proche
+    qui possède elle-même un voisin de notre couleur. Cela garantit qu'on se dirige vers
+    une zone où on pourra osciller ("bon ping-pong") sans risque.
 
     Args:
-        le_plateau (dict): plateau de jeu.
-        pos (tuple[int, int]): position de départ.
-        distance_max (int): portée de recherche.
-        couleur (str): couleur recherchée.
+        le_plateau (dict): Le plateau de jeu.
+        pos (tuple[int, int]): La position de départ.
+        distance_max (int): La distance maximale de recherche.
+        couleur (str): La couleur recherchée (celle du joueur).
 
     Returns:
-        str | None: direction initiale vers une cible appartenant à une paire, sinon None.
+        str | None: La direction vers cette zone, ou None (auquel cas on visera une case isolée).
     """
-    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur)
+    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur, arret_premier=False)
+    
     if not res:
         return None
 
-    for dist, pos_cible in sorted(res.keys(), key=lambda k: (k[0], k[1][0], k[1][1])):
-        voisins_cible = plateau.directions_possibles(le_plateau, pos_cible)
-        if a_voisin_de_couleur(voisins_cible, couleur):
-            return res[(dist, pos_cible)].get('Direction') or None
-    return None
+    candidats_tries = sorted(res.keys(), key=lambda k: k[0])
+
+    for dist, pos_candidat in candidats_tries:
+        voisins_candidat = plateau.directions_possibles(le_plateau, pos_candidat)
+        
+        if a_voisin_de_couleur(voisins_candidat, couleur):
+            return res[(dist, pos_candidat)].get('Direction')
+
+    premier_candidat = candidats_tries[0]
+    return res[premier_candidat].get('Direction')
 
 
 def meilleure_direction_locale(voisins, ma_couleur):
-    """Choisit localement une direction stable (vide -> couleur -> autre).
+    """Choisit la meilleure direction immédiate selon une heuristique simple.
+    Ordre de préférence : Case vide > Ma couleur > Au hasard.
 
     Args:
-        voisins (dict): dict {direction: couleur_case_arrivee}.
-        ma_couleur (str): couleur du joueur.
+        voisins (dict): Dictionnaire des voisins.
+        ma_couleur (str): La couleur du joueur.
 
     Returns:
-        str: direction choisie, ou 'X'.
+        str: La direction choisie.
     """
     if not voisins:
         return RIEN
@@ -197,31 +215,34 @@ def meilleure_direction_locale(voisins, ma_couleur):
 
 
 def tir_sur_case_non_ami(voisins, ma_couleur):
-    """Choisit une direction de tir locale sur une case non alliée.
+    """Détermine s'il faut tirer sur une case voisine immédiate.
 
     Args:
-        voisins (dict): dict {direction: couleur_case_arrivee}.
-        ma_couleur (str): couleur du joueur.
+        voisins (dict): Dictionnaire des voisins.
+        ma_couleur (str): La couleur du joueur.
 
     Returns:
-        str: direction de tir, ou 'X' si aucune cible locale.
+        str: La direction de tir, ou 'X' si inutile.
     """
     for d in DIRS_ORDRE:
         if d in voisins and voisins[d] != ma_couleur:
             return d
     return RIEN
 
+
 def deplacement_peinture_zero(notre_IA, le_plateau, distance_max, reserve):
-    """Gère le déplacement lorsque la réserve est très faible (recharge/retour).
+    """Gère la stratégie de survie lorsque la réserve de peinture est critique (0-2).
+    
+    Cherche en priorité à rejoindre ou rester dans un cluster sûr.
 
     Args:
-        notre_IA (dict): joueur.
-        le_plateau (dict): plateau.
-        distance_max (int): portée de recherche.
-        reserve (int): réserve actuelle.
+        notre_IA (dict): Le joueur.
+        le_plateau (dict): Le plateau.
+        distance_max (int): Portée de recherche.
+        reserve (int): Niveau de réserve actuel.
 
     Returns:
-        tuple[str, str]: (direction_deplacement, direction_tir).
+        tuple[str, str]: (Direction déplacement, Direction tir).
     """
     ma_couleur = joueur.get_couleur(notre_IA)
     ma_pos = joueur.get_pos(notre_IA)
@@ -232,39 +253,35 @@ def deplacement_peinture_zero(notre_IA, le_plateau, distance_max, reserve):
         if d_pair:
             return d_pair, RIEN
 
-    direction = direction_vers_zone_deux_cases(le_plateau, ma_pos, distance_max, ma_couleur)
+    direction = direction_vers_securite_absolue(le_plateau, ma_pos, distance_max, ma_couleur)
+    
     if direction:
         tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
         return direction, tir
 
-    # Priorité au bidon même s'il est loin (souvent la raison du "ne le voit pas").
     direction = direction_vers_objet(le_plateau, ma_pos, distance_max_plateau(le_plateau), const.BIDON)
     if direction:
         tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
         return direction, tir
-
-    direction = direction_vers_couleur(le_plateau, ma_pos, distance_max, ma_couleur)
-    if direction:
-        tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
-        return direction, tir
-
+    
     direction = meilleure_direction_locale(voisins, ma_couleur)
     tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
     return direction, tir
 
+
 def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
-    """Cherche un bidon lorsque la réserve est négative.
+    """Gère la stratégie de pénalité (réserve négative).
+    Objectif unique : trouver un bidon.
 
     Args:
-        notre_IA (dict): joueur.
-        le_plateau (dict): plateau.
-        distance_max (int): portée de recherche.
+        notre_IA (dict): Le joueur.
+        le_plateau (dict): Le plateau.
+        distance_max (int): Portée de recherche.
 
     Returns:
-        tuple[str, str]: (direction_deplacement, direction_tir).
+        tuple[str, str]: (Direction déplacement, Direction tir).
     """
     ma_pos = joueur.get_pos(notre_IA)
-
     direction = direction_vers_objet(le_plateau, ma_pos, distance_max_plateau(le_plateau), const.BIDON)
     if direction:
         return direction, RIEN
@@ -277,21 +294,22 @@ def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
         tir = direction
     return direction, tir
 
+
 def deplacement_vers_objet(notre_IA, le_plateau, distance_max):
-    """Se déplace vers l'objet le plus proche et ajuste le tir si besoin.
+    """Cherche l'objet le plus proche.
 
     Args:
-        notre_IA (dict): joueur.
-        le_plateau (dict): plateau.
-        distance_max (int): portée de recherche.
+        notre_IA (dict): Le joueur.
+        le_plateau (dict): Le plateau.
+        distance_max (int): Portée.
 
     Returns:
-        tuple[str, str] | None: (direction_deplacement, direction_tir) ou None.
+        tuple[str, str] | None.
     """
     ma_pos = joueur.get_pos(notre_IA)
     ma_coul = joueur.get_couleur(notre_IA)
     
-    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='O')
+    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='O', arret_premier=True)
     direction = innondation_direction(resultat)
     if direction:
         dir_tir = RIEN
@@ -303,15 +321,15 @@ def deplacement_vers_objet(notre_IA, le_plateau, distance_max):
 
 
 def deplacement_vers_autre(notre_IA, le_plateau, distance_max):
-    """Se déplace pour continuer à peindre: vide -> ennemi -> notre couleur.
+    """Stratégie d'expansion : Vide > Ennemi > Couleur ami.
 
     Args:
-        notre_IA (dict): joueur.
-        le_plateau (dict): plateau.
-        distance_max (int): portée de recherche.
+        notre_IA (dict): Le joueur.
+        le_plateau (dict): Le plateau.
+        distance_max (int): Portée.
 
     Returns:
-        tuple[str, str]: (direction_deplacement, direction_tir).
+        tuple[str, str]: (Direction, Tir).
     """
     ma_pos = joueur.get_pos(notre_IA)
     ma_couleur = joueur.get_couleur(notre_IA)
@@ -323,18 +341,21 @@ def deplacement_vers_autre(notre_IA, le_plateau, distance_max):
         return RIEN, RIEN
 
     direction = direction_vers_couleur(le_plateau, ma_pos, distance_max, VIDE)
+    
     if not direction:
-        res_ennemi = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='A', C_cherche=ma_couleur)
+        res_ennemi = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='A', C_cherche=ma_couleur, arret_premier=True)
         direction = innondation_direction(res_ennemi)
+        
     if not direction:
         direction = direction_vers_couleur(le_plateau, ma_pos, distance_max, ma_couleur)
 
     if direction:
         d_lig, d_col = plateau.INC_DIRECTION[direction]
         pos_suivante = (ma_pos[0] + d_lig, ma_pos[1] + d_col)
-        couleur_case_visee = case.get_couleur(plateau.get_case(le_plateau, pos_suivante))
-        if couleur_case_visee != ma_couleur:
-            dirTir = direction
+        if plateau.est_sur_plateau(le_plateau, pos_suivante):
+            couleur_case_visee = case.get_couleur(plateau.get_case(le_plateau, pos_suivante))
+            if couleur_case_visee != ma_couleur:
+                dirTir = direction
         return direction, dirTir
     
     direction = meilleure_direction_locale(voisins_possibles, ma_couleur)
@@ -345,81 +366,44 @@ def deplacement_vers_autre(notre_IA, le_plateau, distance_max):
 
 
 def direction_tir_ennemi(notre_IA, le_plateau):
-    """Choisit la meilleure direction de tir vers des ennemis à portée.
-
-    Args:
-        notre_IA (dict): joueur.
-        le_plateau (dict): plateau.
-
-    Returns:
-        str: direction de tir, ou 'X' si aucune cible.
-    """
+    """Cherche la meilleure direction pour toucher des ennemis."""
     ma_pos = joueur.get_pos(notre_IA)
     meilleure_dir = RIEN
     max_ennemis = 0
-    
     for direction in "NESO":
         nb = plateau.nb_joueurs_direction(le_plateau, ma_pos, direction, const.PORTEE_PEINTURE)
         if nb > max_ennemis:
             max_ennemis = nb
             meilleure_dir = direction
-            
     return meilleure_dir
 
 
 def tirer_sur_mur(notre_IA, le_plateau):
-    """Détecte un mur à portée pour le pistolet et retourne une direction.
-
-    Args:
-        notre_IA (dict): joueur.
-        le_plateau (dict): plateau.
-
-    Returns:
-        str | None: direction à tirer, ou None si aucun mur (ou pas de pistolet).
-    """
+    """Cherche un mur à peindre avec le pistolet."""
     if joueur.get_objet(notre_IA) != const.PISTOLET:
         return None
-
     portee = 5
     ma_lig, ma_col = joueur.get_pos(notre_IA) 
     directions = plateau.INC_DIRECTION
-
     for sens, (d_lig, d_col) in directions.items():
-        if sens == RIEN:
-            continue
-
+        if sens == RIEN: continue
         for i in range(1, portee + 1):
             cible = (ma_lig + d_lig * i, ma_col + d_col * i)
-            if not plateau.est_sur_plateau(le_plateau, cible):
-                break
-                
+            if not plateau.est_sur_plateau(le_plateau, cible): break
             la_case = plateau.get_case(le_plateau, cible) 
-            if case.est_mur(la_case): 
-                return sens 
-                
+            if case.est_mur(la_case): return sens 
     return None
 
+
 def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
-    """ Cette fonction permet de calculer les deux actions du joueur de couleur ma_couleur
-        en fonction de l'état du jeu décrit par les paramètres. 
-        Le premier caractère est parmi XSNOE X indique pas de peinture et les autres
-        caractères indique la direction où peindre (Nord, Sud, Est ou Ouest)
-        Le deuxième caractère est parmi SNOE indiquant la direction où se déplacer.
-
-    Args:
-        ma_couleur (str): un caractère en majuscule indiquant la couleur du joueur
-        carac_jeu (dict)): un dictionnaire donnant les valeurs des caractéristiques du jeu:
-             duree_actuelle, duree_totale, reserve_initiale, duree_obj, penalite, bonus_touche,
-             bonus_recharge, bonus_objet et distance_max,
-        le_plateau (dict): l'état du plateau actuel sous la forme décrite dans plateau.py
-        les_joueurs (list[joueur]): la liste des joueurs avec leurs caractéristiques utilisant l'API
-         joueur.py
-
-    Returns:
-        str: une chaine de deux caractères en majuscules indiquant la direction de peinture
-            et la direction de déplacement
-    """
+    """Cerveau de l'IA.
     
+    Logique des priorités :
+    1. RECHARGE EXPRESS : Si on est sur notre couleur et qu'on a un voisin ami, on reste dessus jusqu'à 5 pts.
+    2. RECHARGE URGENCE (Retour) : Si on n'est pas sur notre couleur, on rentre au cluster le plus sûr.
+    3. SURVIE : Si réserve < 2, on cherche cluster ou bidon.
+    4. ACTION : Si tout va bien, on peint, on cherche des objets, on attaque.
+    """
     notre_IA = les_joueurs[ma_couleur]
     deplacement = RIEN
     tir = RIEN
@@ -430,17 +414,15 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
     ma_pos = joueur.get_pos(notre_IA)
     voisins = plateau.directions_possibles(le_plateau, ma_pos)
 
-    # Stabilisation recharge: après être revenu sur notre couleur avec peu de réserve,
-    # on se décale sur une autre case alliée adjacente pour éviter l'oscillation.
-    if case_couleur(le_plateau, ma_pos) == ma_couleur and reserve >= 0:
-        seuil_recharge = max(2, int(carac_jeu.get("bonus_recharge", const.BONUS_RECHARGE)) * 2)
-        if reserve < seuil_recharge:
-            d_allie = a_voisin_de_couleur(voisins, ma_couleur)
-            if d_allie:
+    if case_couleur(le_plateau, ma_pos) == ma_couleur:
+        d_allie = a_voisin_de_couleur(voisins, ma_couleur)
+        
+        if d_allie:
+            if reserve < 5:
                 return RIEN + d_allie
 
     if case_couleur(le_plateau, ma_pos) != ma_couleur:
-        direction = direction_vers_couleur(le_plateau, ma_pos, 28, ma_couleur)
+        direction = direction_vers_securite_absolue(le_plateau, ma_pos, 50, ma_couleur)
         if direction:
             deplacement = direction
             tir = direction if reserve > 0 else RIEN
@@ -449,26 +431,24 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
             tir = tir_sur_case_non_ami(voisins, ma_couleur) if reserve > 0 else RIEN
 
     elif 0 <= reserve < 2:
-        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, 28, reserve)
+        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, 50, reserve)
             
     elif reserve < 0:
-        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, 28)
+        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, 50)
             
     else:
         tir_mur = tirer_sur_mur(notre_IA, le_plateau)
         if tir_mur:
             tir = tir_mur
             deplacement = meilleure_direction_locale(voisins, ma_couleur)
-        
         elif objet_tenu == 0:
-            res_obj = deplacement_vers_objet(notre_IA, le_plateau, 5)
+            res_obj = deplacement_vers_objet(notre_IA, le_plateau, 10)
             if res_obj:
                 deplacement, tir = res_obj
             else:
-                deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 28)
-        
+                deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 30)
         else:
-             deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 28)
+             deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 30)
 
         if tir == RIEN:
             tir_ennemi = direction_tir_ennemi(notre_IA, le_plateau)
