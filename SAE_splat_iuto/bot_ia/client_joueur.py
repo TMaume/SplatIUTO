@@ -35,7 +35,7 @@ DIRS_ORDRE = ("N", "E", "S", "O")
 
 
 def distance_max_plateau(le_plateau):
-    """Calcule une borne supérieure pour la distance de recherche sur le plateau.
+    """Calcule la distance max de recherche sur le plateau.
     
     Args:
         le_plateau (dict): Le plateau de jeu.
@@ -69,20 +69,20 @@ def innondation_direction(resultat):
     """Extrait la première direction à prendre depuis le résultat d'une inondation.
 
     Args:
-        resultat (dict): Le dictionnaire retourné par innondation.Innondation.
+        resultat (dict): Le dictionnaire retourné par l'innondation.
 
     Returns:
         str | None: La direction vers la cible la plus proche, ou None si aucun résultat.
     """
     if not resultat:
         return None
-    cle_min = min(resultat, key=lambda k: k[0])
+    cle_min = min(resultat, key=lambda x: x[0])
     direction = resultat[cle_min].get('Direction')
-    return direction or None
+    return direction if direction else None
 
 
 def random_direction_from_voisins(voisins):
-    """Choisit une direction disponible parmi les voisins de manière déterministe (ordre fixe).
+    """Choisit une direction disponible parmi les voisins.
 
     Args:
         voisins (dict): Dictionnaire {direction: couleur_case}.
@@ -95,7 +95,8 @@ def random_direction_from_voisins(voisins):
     for d in DIRS_ORDRE:
         if d in voisins:
             return d
-    return next(iter(voisins), RIEN)
+            
+    return list(voisins.keys())[0]
 
 
 def case_couleur(le_plateau, pos):
@@ -106,7 +107,7 @@ def case_couleur(le_plateau, pos):
         pos (tuple[int, int]): La position (ligne, colonne).
 
     Returns:
-        str: La couleur de la case (ex: 'A', 'B', ' ').
+        str: La couleur de la case.
     """
     return case.get_couleur(plateau.get_case(le_plateau, pos))
 
@@ -150,7 +151,7 @@ def direction_vers_objet(le_plateau, pos, distance_max, objet):
         le_plateau (dict): Le plateau de jeu.
         pos (tuple[int, int]): La position de départ.
         distance_max (int): La distance maximale de recherche.
-        objet (int): L'identifiant de l'objet (ex: const.BIDON).
+        objet (int): L'identifiant de l'objet.
 
     Returns:
         str | None: La direction à prendre, ou None si introuvable.
@@ -159,12 +160,11 @@ def direction_vers_objet(le_plateau, pos, distance_max, objet):
     return innondation_direction(res)
 
 
-def direction_vers_securite_absolue(le_plateau, pos, distance_max, couleur):
-    """Cherche une zone de recharge sûre (cluster) de manière exhaustive.
+def direction_vers_securite(le_plateau, pos, distance_max, couleur):
+    """Cherche une zone de recharge sûre d'au moins 2 cases pour y faire des allers retours.
     
     Cette fonction scanne toutes les cases de notre couleur et sélectionne la plus proche
-    qui possède elle-même un voisin de notre couleur. Cela garantit qu'on se dirige vers
-    une zone où on pourra osciller ("bon ping-pong") sans risque.
+    qui possède elle-même un voisin de notre couleur.
 
     Args:
         le_plateau (dict): Le plateau de jeu.
@@ -173,14 +173,14 @@ def direction_vers_securite_absolue(le_plateau, pos, distance_max, couleur):
         couleur (str): La couleur recherchée (celle du joueur).
 
     Returns:
-        str | None: La direction vers cette zone, ou None (auquel cas on visera une case isolée).
+        str | None: La direction vers cette zone, ou None (dans ce cas on va sur une case seule).
     """
     res = innondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur, arret_premier=False)
     
     if not res:
         return None
 
-    candidats_tries = sorted(res.keys(), key=lambda k: k[0])
+    candidats_tries = sorted(res.keys(), key=lambda x: x[0])
 
     for dist, pos_candidat in candidats_tries:
         voisins_candidat = plateau.directions_possibles(le_plateau, pos_candidat)
@@ -193,7 +193,7 @@ def direction_vers_securite_absolue(le_plateau, pos, distance_max, couleur):
 
 
 def meilleure_direction_locale(voisins, ma_couleur):
-    """Choisit la meilleure direction immédiate selon une heuristique simple.
+    """Choisit la meilleure direction.
     Ordre de préférence : Case vide > Ma couleur > Au hasard.
 
     Args:
@@ -215,7 +215,7 @@ def meilleure_direction_locale(voisins, ma_couleur):
 
 
 def tir_sur_case_non_ami(voisins, ma_couleur):
-    """Détermine s'il faut tirer sur une case voisine immédiate.
+    """Verifie si il faut tirer sur une case voisine.
 
     Args:
         voisins (dict): Dictionnaire des voisins.
@@ -231,9 +231,9 @@ def tir_sur_case_non_ami(voisins, ma_couleur):
 
 
 def deplacement_peinture_zero(notre_IA, le_plateau, distance_max, reserve):
-    """Gère la stratégie de survie lorsque la réserve de peinture est critique (0-2).
+    """Gère la stratégie de survie lorsque la réserve de peinture est basse.
     
-    Cherche en priorité à rejoindre ou rester dans un cluster sûr.
+    Cherche à rejoindre ou rester dans un endroit sûr.
 
     Args:
         notre_IA (dict): Le joueur.
@@ -253,7 +253,7 @@ def deplacement_peinture_zero(notre_IA, le_plateau, distance_max, reserve):
         if d_pair:
             return d_pair, RIEN
 
-    direction = direction_vers_securite_absolue(le_plateau, ma_pos, distance_max, ma_couleur)
+    direction = direction_vers_securite(le_plateau, ma_pos, distance_max, ma_couleur)
     
     if direction:
         tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
@@ -270,8 +270,8 @@ def deplacement_peinture_zero(notre_IA, le_plateau, distance_max, reserve):
 
 
 def deplacement_peinture_negative(notre_IA, le_plateau, distance_max):
-    """Gère la stratégie de pénalité (réserve négative).
-    Objectif unique : trouver un bidon.
+    """Gère la stratégie quand réserve négative.
+    Objectif : trouver un bidon.
 
     Args:
         notre_IA (dict): Le joueur.
@@ -366,7 +366,15 @@ def deplacement_vers_autre(notre_IA, le_plateau, distance_max):
 
 
 def direction_tir_ennemi(notre_IA, le_plateau):
-    """Cherche la meilleure direction pour toucher des ennemis."""
+    """Cherche la meilleure direction pour tirer sur un ennemi.
+
+    Args:
+        notre_IA (dict): Le joueur.
+        le_plateau (dict): Le plateau.
+
+    Returns:
+        str: La meilleure direction pour tirer sur un ennemi.
+    """    
     ma_pos = joueur.get_pos(notre_IA)
     meilleure_dir = RIEN
     max_ennemis = 0
@@ -379,7 +387,14 @@ def direction_tir_ennemi(notre_IA, le_plateau):
 
 
 def tirer_sur_mur(notre_IA, le_plateau):
-    """Cherche un mur à peindre avec le pistolet."""
+    """Cherche un mur à peindre avec le pistolet.
+
+    Args:
+        notre_IA (dict): Le joueur.
+        le_plateau (dict): Le plateau.
+    Returns:
+        str | None: La direction pour tirer sur un mur, ou None si il y en a pas.
+    """    
     if joueur.get_objet(notre_IA) != const.PISTOLET:
         return None
     portee = 5
@@ -396,13 +411,24 @@ def tirer_sur_mur(notre_IA, le_plateau):
 
 
 def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
-    """Cerveau de l'IA.
-    
-    Logique des priorités :
-    1. RECHARGE EXPRESS : Si on est sur notre couleur et qu'on a un voisin ami, on reste dessus jusqu'à 5 pts.
-    2. RECHARGE URGENCE (Retour) : Si on n'est pas sur notre couleur, on rentre au cluster le plus sûr.
-    3. SURVIE : Si réserve < 2, on cherche cluster ou bidon.
-    4. ACTION : Si tout va bien, on peint, on cherche des objets, on attaque.
+    """ Cette fonction permet de calculer les deux actions du joueur de couleur ma_couleur
+        en fonction de l'état du jeu décrit par les paramètres. 
+        Le premier caractère est parmi XSNOE X indique pas de peinture et les autres
+        caractères indique la direction où peindre (Nord, Sud, Est ou Ouest)
+        Le deuxième caractère est parmi SNOE indiquant la direction où se déplacer.
+
+    Args:
+        ma_couleur (str): un caractère en majuscule indiquant la couleur du joueur
+        carac_jeu (dict)): un dictionnaire donnant les valeurs des caractéristiques du jeu:
+             duree_actuelle, duree_totale, reserve_initiale, duree_obj, penalite, bonus_touche,
+             bonus_recharge, bonus_objet et distance_max,
+        le_plateau (dict): l'état du plateau actuel sous la forme décrite dans plateau.py
+        les_joueurs (list[joueur]): la liste des joueurs avec leurs caractéristiques utilisant l'API
+         joueur.py
+
+    Returns:
+        str: une chaine de deux caractères en majuscules indiquant la direction de peinture
+            et la direction de déplacement
     """
     notre_IA = les_joueurs[ma_couleur]
     deplacement = RIEN
@@ -418,7 +444,7 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
         d_allie = a_voisin_de_couleur(voisins, ma_couleur)
         
         if d_allie:
-            if reserve < 5:
+            if reserve < 4:
                 return RIEN + d_allie
 
     if case_couleur(le_plateau, ma_pos) != ma_couleur:
@@ -462,43 +488,34 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
 
 
 
-if __name__ == "__main__":
-    noms_caracteristiques = [
-        "duree_actuelle",
-        "duree_totale",
-        "reserve_initiale",
-        "duree_obj",
-        "penalite",
-        "bonus_touche",
-        "bonus_recharge",
-        "bonus_objet",
-        "distance_max",
-    ]
-    parser = argparse.ArgumentParser()
+if __name__=="__main__":
+    noms_caracteristiques=["duree_actuelle","duree_totale","reserve_initiale","duree_obj","penalite","bonus_touche",
+            "bonus_recharge","bonus_objet","distance_max"]
+    parser = argparse.ArgumentParser()  
     parser.add_argument("--equipe", dest="nom_equipe", help="nom de l'équipe", type=str, default='Non fournie')
     parser.add_argument("--serveur", dest="serveur", help="serveur de jeu", type=str, default='localhost')
     parser.add_argument("--port", dest="port", help="port de connexion", type=int, default=1111)
     
     args = parser.parse_args()
-    le_client = client.ClientCyber()
-    le_client.creer_socket(args.serveur, args.port)
-    le_client.enregistrement(args.nom_equipe, "joueur")
-    ok = True
+    le_client=client.ClientCyber()
+    le_client.creer_socket(args.serveur,args.port)
+    le_client.enregistrement(args.nom_equipe,"joueur")
+    ok=True
     while ok:
-        ok, id_joueur, le_jeu = le_client.prochaine_commande()
+        ok,id_joueur,le_jeu=le_client.prochaine_commande()
         if ok:
-            val_carac_jeu, etat_plateau, les_joueurs = le_jeu.split("--------------------\n")
-
-            joueurs = {}
-            for ligne in les_joueurs.strip().splitlines():
-                le_joueur = joueur.joueur_from_str(ligne)
-                joueurs[joueur.get_couleur(le_joueur)] = le_joueur
-
-            le_plateau = plateau.Plateau(etat_plateau)
-            val_carac = val_carac_jeu.split(";")
-            carac_jeu = {k: int(v) for k, v in zip(noms_caracteristiques, val_carac)}
-
-            actions_joueur = mon_IA(id_joueur, carac_jeu, le_plateau, joueurs)
+            val_carac_jeu,etat_plateau,les_joueurs=le_jeu.split("--------------------\n")
+            joueurs={}
+            for ligne in les_joueurs[:-1].split('\n'):
+                lejoueur=joueur.joueur_from_str(ligne)
+                joueurs[joueur.get_couleur(lejoueur)]=lejoueur
+            le_plateau=plateau.Plateau(etat_plateau)
+            val_carac=val_carac_jeu.split(";")
+            carac_jeu={}
+            for i in range(len(noms_caracteristiques)):
+                carac_jeu[noms_caracteristiques[i]]=int(val_carac[i])
+    
+            actions_joueur=mon_IA(id_joueur,carac_jeu,le_plateau,joueurs)
             le_client.envoyer_commande_client(actions_joueur)
+            # le_client.afficher_msg("sa reponse  envoyée "+str(id_joueur)+args.nom_equipe)
     le_client.afficher_msg("terminé")
-
