@@ -1,7 +1,6 @@
 from bot_ia import const
 from bot_ia import plateau
 from bot_ia import case
-from collections import deque
 
 def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O_cherche=None, arret_premier=True):
     """
@@ -13,101 +12,86 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O
         C_cherche (str): Si spécifié, ne retient que cette couleur.
         O_cherche (int): Si spécifié, ne retient que cet objet.
         arret_premier (bool): Si True, s'arrête dès la première trouvaille. 
-                              Si False, scanne tout le rayon (indispensable pour votre stratégie).
+                              Si False, scanne tout le rayon.
     Returns:
         dict: {(distance, pos): {'Objet': ..., 'Couleur': ..., 'Direction': ...}}
     """
     dico_distances = {}
     
-    if not plateau.est_sur_plateau(le_plateau, pos):
-        return dico_distances
-    
-    visitee = {pos}
-    queue = deque([(pos, 0, None)])
-    recherche_found = False
-    
-    nb_lignes = le_plateau["nb_lignes"]
-    nb_cols = le_plateau["nb_colonnes"]
-    valeurs = le_plateau["les_valeurs"]
-
-    cherche_tout = recherche is None
-    cherche_j = cherche_tout or ('J' in recherche)
-    cherche_o = cherche_tout or ('O' in recherche)
-    cherche_c = cherche_tout or ('C' in recherche)
-    
-    while queue:
-        if arret_premier and recherche_found:
-            break
-
-        pos_actuelle, distance, premiere_direction = queue.popleft()
-
-        if distance > distance_max:
-            continue
-
-        idx_actuelle = pos_actuelle[0] * nb_cols + pos_actuelle[1]
-        la_case = valeurs[idx_actuelle]
-        infos_case = {}
+    if plateau.est_sur_plateau(le_plateau, pos):
+        visitee = {pos}
+        # Remplacement de deque par une liste standard
+        queue = [(pos, 0, None)]
+        recherche_found = False
         
-        trouve_ici = False
+        nb_lignes = le_plateau["nb_lignes"]
+        nb_cols = le_plateau["nb_colonnes"]
+        valeurs = le_plateau["les_valeurs"]
 
-        if cherche_j:
-            joueurs_case = case.get_joueurs(la_case)
-            if joueurs_case:
-                infos_case['Joueur'] = joueurs_case
-                if recherche == 'J': trouve_ici = True
-
-        if cherche_o:
-            objet = case.get_objet(la_case)
-            if objet != const.AUCUN and (O_cherche is None or objet == O_cherche):
-                infos_case['Objet'] = objet
-                if recherche == 'O': trouve_ici = True
-
-        if cherche_c:
-            coul = case.get_couleur(la_case)
-            if C_cherche is None:
-                if coul != ' ':
-                    infos_case['Couleur'] = coul
-                    if recherche == 'C': trouve_ici = True
-            else:
-                if coul == C_cherche:
-                    infos_case['Couleur'] = coul
-                    if recherche == 'C': trouve_ici = True
-
-        if recherche == 'A':
-            coul = case.get_couleur(la_case)
-            if coul != C_cherche:
-                infos_case['Couleur'] = coul
-                trouve_ici = True
-
-        if trouve_ici:
-            recherche_found = True
-
-        if infos_case and distance > 0:
-            infos_case['Direction'] = premiere_direction
-            dico_distances[(distance, pos_actuelle)] = infos_case
-
-        if distance >= distance_max:
-            continue
+        cherche_tout = recherche is None
+        cherche_j = cherche_tout or ('J' in recherche)
+        cherche_o = cherche_tout or ('O' in recherche)
+        cherche_c = cherche_tout or ('C' in recherche)
         
-        if arret_premier and recherche_found:
-            continue
+        while queue and (not arret_premier or not recherche_found):
+            # pop(0) récupère le premier élément de la liste (FIFO), comme popleft()
+            pos_actuelle, distance, premiere_direction = queue.pop(0)
 
-        for dir_nom, (d_lig, d_col) in plateau.INC_DIRECTION.items():
-            if dir_nom == 'X': continue
+            if distance <= distance_max:
+                idx_actuelle = pos_actuelle[0] * nb_cols + pos_actuelle[1]
+                la_case = valeurs[idx_actuelle]
+                infos_case = {}
+                
+                trouve_ici = False
 
-            voisin_pos = (pos_actuelle[0] + d_lig, pos_actuelle[1] + d_col)
-            
-            if not (0 <= voisin_pos[0] < nb_lignes and 0 <= voisin_pos[1] < nb_cols):
-                continue
+                if cherche_j:
+                    joueurs_case = case.get_joueurs(la_case)
+                    if joueurs_case:
+                        infos_case['Joueur'] = joueurs_case
+                        if recherche == 'J': trouve_ici = True
 
-            idx_voisin = voisin_pos[0] * nb_cols + voisin_pos[1]
-            case_voisin = valeurs[idx_voisin]
-            
-            if case_voisin["mur"]: continue
-            if voisin_pos in visitee: continue
+                if cherche_o:
+                    objet = case.get_objet(la_case)
+                    if objet != const.AUCUN and (O_cherche is None or objet == O_cherche):
+                        infos_case['Objet'] = objet
+                        if recherche == 'O': trouve_ici = True
 
-            visitee.add(voisin_pos)
-            next_dir = dir_nom if distance == 0 else premiere_direction
-            queue.append((voisin_pos, distance + 1, next_dir))
+                if cherche_c:
+                    coul = case.get_couleur(la_case)
+                    if C_cherche is None:
+                        if coul != ' ':
+                            infos_case['Couleur'] = coul
+                            if recherche == 'C': trouve_ici = True
+                    else:
+                        if coul == C_cherche:
+                            infos_case['Couleur'] = coul
+                            if recherche == 'C': trouve_ici = True
+
+                if recherche == 'A':
+                    coul = case.get_couleur(la_case)
+                    if coul != C_cherche:
+                        infos_case['Couleur'] = coul
+                        trouve_ici = True
+
+                if trouve_ici:
+                    recherche_found = True
+
+                if infos_case and distance > 0:
+                    infos_case['Direction'] = premiere_direction
+                    dico_distances[(distance, pos_actuelle)] = infos_case
+
+                if distance < distance_max and (not arret_premier or not recherche_found):
+                    for dir_nom, (d_lig, d_col) in plateau.INC_DIRECTION.items():
+                        if dir_nom != 'X':
+                            voisin_pos = (pos_actuelle[0] + d_lig, pos_actuelle[1] + d_col)
+                            
+                            if 0 <= voisin_pos[0] < nb_lignes and 0 <= voisin_pos[1] < nb_cols:
+                                idx_voisin = voisin_pos[0] * nb_cols + voisin_pos[1]
+                                case_voisin = valeurs[idx_voisin]
+                                
+                                if not case_voisin["mur"] and voisin_pos not in visitee:
+                                    visitee.add(voisin_pos)
+                                    next_dir = dir_nom if distance == 0 else premiere_direction
+                                    queue.append((voisin_pos, distance + 1, next_dir))
                         
     return dico_distances
