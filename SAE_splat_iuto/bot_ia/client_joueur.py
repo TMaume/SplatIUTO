@@ -82,7 +82,7 @@ def innondation_direction(resultat):
 
 
 def random_direction_from_voisins(voisins):
-    """Choisit une direction disponible parmi les voisins.
+    """Choisit une direction disponible parmi les voisins de manière aléatoire.
 
     Args:
         voisins (dict): Dictionnaire {direction: couleur_case}.
@@ -92,11 +92,8 @@ def random_direction_from_voisins(voisins):
     """
     if not voisins:
         return RIEN
-    for d in DIRS_ORDRE:
-        if d in voisins:
-            return d
-            
-    return list(voisins.keys())[0]
+    
+    return random.choice(list(voisins.keys()))
 
 
 def case_couleur(le_plateau, pos):
@@ -253,16 +250,16 @@ def deplacement_peinture_zero(notre_IA, le_plateau, distance_max, reserve):
         if d_pair:
             return d_pair, RIEN
 
-    direction = direction_vers_securite(le_plateau, ma_pos, distance_max, ma_couleur)
-    
-    if direction:
-        tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
-        return direction, tir
-
     direction = direction_vers_objet(le_plateau, ma_pos, distance_max_plateau(le_plateau), const.BIDON)
     if direction:
         tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
         return direction, tir
+
+    direction = direction_vers_securite(le_plateau, ma_pos, distance_max, ma_couleur)
+    if direction:
+        tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
+        return direction, tir
+
     
     direction = meilleure_direction_locale(voisins, ma_couleur)
     tir = direction if reserve > 0 and voisins.get(direction) != ma_couleur else RIEN
@@ -340,7 +337,7 @@ def deplacement_vers_autre(notre_IA, le_plateau, distance_max):
     if not voisins_possibles:
         return RIEN, RIEN
 
-    direction = direction_vers_couleur(le_plateau, ma_pos, distance_max, VIDE)
+    direction = direction_vers_couleur(le_plateau, ma_pos, distance_max//5, VIDE)
     
     if not direction:
         res_ennemi = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='A', C_cherche=ma_couleur, arret_premier=True)
@@ -448,7 +445,7 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
                 return RIEN + d_allie
 
     if case_couleur(le_plateau, ma_pos) != ma_couleur:
-        direction = direction_vers_securite_absolue(le_plateau, ma_pos, 50, ma_couleur)
+        direction = direction_vers_securite(le_plateau, ma_pos, distance_max_plateau(le_plateau), ma_couleur)
         if direction:
             deplacement = direction
             tir = direction if reserve > 0 else RIEN
@@ -457,10 +454,10 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
             tir = tir_sur_case_non_ami(voisins, ma_couleur) if reserve > 0 else RIEN
 
     elif 0 <= reserve < 2:
-        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, 50, reserve)
+        deplacement, tir = deplacement_peinture_zero(notre_IA, le_plateau, distance_max_plateau(le_plateau), reserve)
             
     elif reserve < 0:
-        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, 50)
+        deplacement, tir = deplacement_peinture_negative(notre_IA, le_plateau, distance_max_plateau(le_plateau))
             
     else:
         tir_mur = tirer_sur_mur(notre_IA, le_plateau)
@@ -472,9 +469,9 @@ def mon_IA(ma_couleur, carac_jeu, le_plateau, les_joueurs):
             if res_obj:
                 deplacement, tir = res_obj
             else:
-                deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 30)
+                deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, distance_max_plateau(le_plateau))
         else:
-             deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, 30)
+             deplacement, tir = deplacement_vers_autre(notre_IA, le_plateau, distance_max_plateau(le_plateau))
 
         if tir == RIEN:
             tir_ennemi = direction_tir_ennemi(notre_IA, le_plateau)
