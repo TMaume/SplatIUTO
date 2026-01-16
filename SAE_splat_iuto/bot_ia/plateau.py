@@ -412,16 +412,14 @@ def distances_objets_joueurs(plateau, pos, distance_max):
             contenant à la fois des objets et des joueurs. Attention le dictionnaire ne doit contenir
             des entrées uniquement pour les distances où il y a effectivement au moins un objet ou un joueur
     """ 
-    # Type de dico voulu: {4: {4}, 10: {'D'}, 14: {3}, 15: {'E'}, 17: {1, 'C'}, 18: {'A', 'B'}}
+    # Type de dico : {4: {4}, 10: {'D'}, 14: {3}, 15: {'E'}, 17: {1, 'C'}, 18: {'A', 'B'}}
     dico_distances = dict()
     
-    # Vérifier si la position de départ est sur le plateau
     if not est_sur_plateau(plateau, pos):
         return dico_distances
-    
-    # Utiliser une approche BFS (Breadth-First Search) pour contourner les murs
+
     visitee = set()
-    queue = [(pos, 0)]  # (position, distance)
+    queue = [(pos, 0)]
     visitee.add(pos)
     index = 0
     

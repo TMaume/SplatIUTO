@@ -2,7 +2,7 @@ from bot_ia import const
 from bot_ia import plateau
 from bot_ia import case
 
-def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O_cherche=None, arret_premier=True):
+def Inondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O_cherche=None, arret_premier=True):
     """
     Args:
         le_plateau (dict): L'état actuel du plateau.
@@ -20,7 +20,6 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O
     
     if plateau.est_sur_plateau(le_plateau, pos):
         visitee = {pos}
-        # Remplacement de deque par une liste standard
         queue = [(pos, 0, None)]
         recherche_found = False
         
@@ -34,7 +33,7 @@ def Innondation(le_plateau, pos, distance_max, recherche=None, C_cherche=None, O
         cherche_c = cherche_tout or ('C' in recherche)
         
         while queue and (not arret_premier or not recherche_found):
-            # pop(0) récupère le premier élément de la liste (FIFO), comme popleft()
+
             pos_actuelle, distance, premiere_direction = queue.pop(0)
 
             if distance <= distance_max:

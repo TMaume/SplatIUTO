@@ -24,7 +24,7 @@ import random
 from bot_ia import case
 from bot_ia import client
 from bot_ia import const
-from bot_ia import innondation
+from bot_ia import inondation
 from bot_ia import joueur
 from bot_ia import plateau
 
@@ -137,7 +137,7 @@ def direction_vers_couleur(le_plateau, pos, distance_max, couleur):
     Returns:
         str | None: La direction à prendre, ou None si introuvable.
     """
-    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur, arret_premier=True)
+    res = inondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur, arret_premier=True)
     return innondation_direction(res)
 
 
@@ -153,7 +153,7 @@ def direction_vers_objet(le_plateau, pos, distance_max, objet):
     Returns:
         str | None: La direction à prendre, ou None si introuvable.
     """
-    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='O', O_cherche=objet, arret_premier=True)
+    res = inondation.Innondation(le_plateau, pos, distance_max, recherche='O', O_cherche=objet, arret_premier=True)
     return innondation_direction(res)
 
 
@@ -172,7 +172,7 @@ def direction_vers_securite(le_plateau, pos, distance_max, couleur):
     Returns:
         str | None: La direction vers cette zone, ou None (dans ce cas on va sur une case seule).
     """
-    res = innondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur, arret_premier=False)
+    res = inondation.Innondation(le_plateau, pos, distance_max, recherche='C', C_cherche=couleur, arret_premier=False)
     
     if not res:
         return None
@@ -306,7 +306,7 @@ def deplacement_vers_objet(notre_IA, le_plateau, distance_max):
     ma_pos = joueur.get_pos(notre_IA)
     ma_coul = joueur.get_couleur(notre_IA)
     
-    resultat = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='O', arret_premier=True)
+    resultat = inondation.Innondation(le_plateau, ma_pos, distance_max, recherche='O', arret_premier=True)
     direction = innondation_direction(resultat)
     if direction:
         dir_tir = RIEN
@@ -340,7 +340,7 @@ def deplacement_vers_autre(notre_IA, le_plateau, distance_max):
     direction = direction_vers_couleur(le_plateau, ma_pos, distance_max//5, VIDE)
     
     if not direction:
-        res_ennemi = innondation.Innondation(le_plateau, ma_pos, distance_max, recherche='A', C_cherche=ma_couleur, arret_premier=True)
+        res_ennemi = inondation.Innondation(le_plateau, ma_pos, distance_max, recherche='A', C_cherche=ma_couleur, arret_premier=True)
         direction = innondation_direction(res_ennemi)
         
     if not direction:
